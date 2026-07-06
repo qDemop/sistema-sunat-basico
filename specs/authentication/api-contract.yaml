@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info: { title: Authentication API, version: 2.0.0 }
+paths:
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Authenticate and issue JWT with jti.
+      security: []
+      x-roles: [Public]
+      parameters:
+        - $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authenticated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '423':
+          description: Account inactive or blocked until the returned instant.
+          content:
+            application/json:
+              schema: { $ref: '../shared-api-components.yaml#/components/schemas/ErrorResponse' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current JWT jti until expiration.
+      x-roles: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Token revoked and client may clear it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 50, pattern: '^[A-Za-z0-9]{3,50}$', description: Case-insensitive identity normalized with lower-case lookup. }
+        password: { type: string, format: password, minLength: 1 }
+    LoginResponse:
+      type: object
+      required: [token, expiresAt, user, modules, correlationId]
+      properties:
+        token: { type: string }
+        expiresAt: { type: string, format: date-time }
+        user: { $ref: '#/components/schemas/UserSession' }
+        modules:
+          type: array
+          items: { type: string, enum: [Payroll, AccountingSUNAT, GeneralLedgerRead, GeneralLedgerWrite, Reports, Administration] }
+        correlationId: { type: string }
+    UserSession:
+      type: object
+      required: [id, nombre, rol]
+      properties:
+        id: { type: integer, format: int64 }
+        nombre: { type: string }
+        rol: { type: string, enum: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema] }
+    LogoutResponse:
+      type: object
+      required: [revoked, expiresAt, correlationId]
+      properties:
+        revoked: { type: boolean, enum: [true] }
+        expiresAt: { type: string, format: date-time }
+        correlationId: { type: string }

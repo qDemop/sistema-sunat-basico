@@ -1,0 +1,440 @@
+openapi: 3.0.3
+info: { title: Administration API, version: 2.0.0 }
+security: [{ bearerAuth: [] }]
+paths:
+  /api/admin/usuarios:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listUsers
+      x-roles: &adminRoles [Administrador Sistema]
+      parameters:
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: activo, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: User page, content: { application/json: { schema: { $ref: '#/components/schemas/UserPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createUser
+      x-roles: *adminRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserCreateRequest' } } } }
+      responses:
+        '201': { description: User created, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/usuarios/{id}:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: getUser
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: User detail, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    put:
+      operationId: updateUser
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserUpdateRequest' } } } }
+      responses:
+        '200': { description: User updated, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    delete:
+      operationId: deactivateUser
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: User deactivated, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/usuarios/{id}/reactivar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: reactivateUser
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: User reactivated, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/usuarios/{id}/reset-password:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: resetUserPassword
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PasswordResetRequest' } } } }
+      responses:
+        '200': { description: Password reset, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/roles:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listPredefinedRoles
+      x-roles: *adminRoles
+      responses:
+        '200': { description: Four predefined roles, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoleResponse' } } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/config/tributaria:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listTaxVersions
+      x-roles: *adminRoles
+      parameters: &versionPaging
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+      responses:
+        '200': { description: Tax version page, content: { application/json: { schema: { $ref: '#/components/schemas/TaxVersionPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createTaxVersion
+      x-roles: *adminRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TaxVersionRequest' } } } }
+      responses:
+        '201': { description: Draft tax version created, content: { application/json: { schema: { $ref: '#/components/schemas/TaxVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/config/tributaria/{id}/activar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: activateTaxVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Tax version activated, content: { application/json: { schema: { $ref: '#/components/schemas/TaxVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/config/tributaria/{id}/cerrar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: closeTaxVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Tax version closed, content: { application/json: { schema: { $ref: '#/components/schemas/TaxVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/config/previsional:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listPensionVersions
+      x-roles: *adminRoles
+      parameters: *versionPaging
+      responses:
+        '200': { description: Pension version page, content: { application/json: { schema: { $ref: '#/components/schemas/PensionVersionPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createPensionVersion
+      x-roles: *adminRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PensionVersionRequest' } } } }
+      responses:
+        '201': { description: Draft pension version created, content: { application/json: { schema: { $ref: '#/components/schemas/PensionVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/config/previsional/{id}/activar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: activatePensionVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Pension version activated, content: { application/json: { schema: { $ref: '#/components/schemas/PensionVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/config/previsional/{id}/cerrar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: closePensionVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Pension version closed, content: { application/json: { schema: { $ref: '#/components/schemas/PensionVersionResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/config/sunat-formatos:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listSunatFormatVersions
+      x-roles: *adminRoles
+      parameters: *versionPaging
+      responses:
+        '200': { description: SUNAT format page, content: { application/json: { schema: { $ref: '#/components/schemas/SunatFormatPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createSunatFormatVersion
+      x-roles: *adminRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SunatFormatRequest' } } } }
+      responses:
+        '201': { description: Draft format version created, content: { application/json: { schema: { $ref: '#/components/schemas/SunatFormatResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/config/sunat-formatos/{id}/activar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: activateSunatFormatVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Format activated, content: { application/json: { schema: { $ref: '#/components/schemas/SunatFormatResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/config/sunat-formatos/{id}/cerrar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: closeSunatFormatVersion
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Format closed, content: { application/json: { schema: { $ref: '#/components/schemas/SunatFormatResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/admin/audit:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listAuditEvents
+      x-roles: *adminRoles
+      parameters:
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+        - { name: desde, in: query, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, schema: { type: string, format: date-time } }
+        - { name: usuarioId, in: query, schema: { type: integer, format: int64 } }
+        - { name: accion, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Audit event page, content: { application/json: { schema: { $ref: '#/components/schemas/AuditEventPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/admin/audit/{id}:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: getAuditEvent
+      x-roles: *adminRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Immutable audit event detail, content: { application/json: { schema: { $ref: '#/components/schemas/AuditEventResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    UserCreateRequest:
+      type: object
+      required: [username, nombreCompleto, rolId, passwordTemporal]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 50, pattern: '^[A-Za-z0-9]{3,50}$', description: Case-insensitively unique identity. }
+        nombreCompleto: { type: string, minLength: 1, maxLength: 200 }
+        rolId: { type: integer, format: int64 }
+        passwordTemporal: { type: string, format: password, minLength: 8 }
+    UserUpdateRequest:
+      type: object
+      required: [nombreCompleto, rolId]
+      properties: { nombreCompleto: { type: string, minLength: 1, maxLength: 200 }, rolId: { type: integer, format: int64 } }
+    UserResponse:
+      type: object
+      required: [id, username, nombreCompleto, rolId, rol, activo, intentosFallidos, fechaCreacion]
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        nombreCompleto: { type: string }
+        rolId: { type: integer, format: int64 }
+        rol: { type: string, enum: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema] }
+        activo: { type: boolean }
+        intentosFallidos: { type: integer }
+        bloqueadoHasta: { type: string, format: date-time, nullable: true }
+        ultimoAcceso: { type: string, format: date-time, nullable: true }
+        fechaCreacion: { type: string, format: date-time }
+    UserPage:
+      type: object
+      required: [items, pageInfo]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/UserResponse' } }, pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' } }
+    PasswordResetRequest:
+      type: object
+      required: [passwordTemporal]
+      properties: { passwordTemporal: { type: string, format: password, minLength: 8 } }
+    RoleResponse:
+      type: object
+      required: [id, nombre, descripcion, nivelAcceso, activo, modulos]
+      properties:
+        id: { type: integer, format: int64 }
+        nombre: { type: string, enum: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema] }
+        descripcion: { type: string, nullable: true }
+        nivelAcceso: { type: integer, minimum: 1 }
+        activo: { type: boolean }
+        modulos: { type: array, items: { type: string, enum: [Authentication, Payroll, AccountingSUNAT, GeneralLedger, Reports, Administration] } }
+    VersionBaseResponse:
+      type: object
+      required: [id, version, fechaInicio, estado]
+      properties:
+        id: { type: integer, format: int64 }
+        version: { type: integer, minimum: 1 }
+        fechaInicio: { type: string, format: date }
+        fechaFin: { type: string, format: date, nullable: true }
+        estado: { type: string, enum: [Draft, Active, Closed] }
+    TaxVersionRequest:
+      type: object
+      required: [codigo, version, tasaIgv, fechaInicio]
+      properties:
+        codigo: { type: string, enum: [IGV] }
+        descripcion: { type: string, maxLength: 250 }
+        version: { type: integer, minimum: 1 }
+        tasaIgv: { type: number, multipleOf: 0.01, minimum: 0, maximum: 100 }
+        fechaInicio: { type: string, format: date }
+        fechaFin: { type: string, format: date, nullable: true }
+    TaxVersionResponse:
+      allOf: [{ $ref: '#/components/schemas/TaxVersionRequest' }, { $ref: '#/components/schemas/VersionBaseResponse' }]
+    TaxVersionPage:
+      type: object
+      required: [items, pageInfo]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/TaxVersionResponse' } }, pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' } }
+    PensionVersionRequest:
+      type: object
+      required: [tipoDescuentoId, version, porcentaje, fechaInicio]
+      properties:
+        tipoDescuentoId: { type: integer, format: int64 }
+        version: { type: integer, minimum: 1 }
+        porcentaje: { type: number, multipleOf: 0.01, minimum: 0, maximum: 100 }
+        fechaInicio: { type: string, format: date }
+        fechaFin: { type: string, format: date, nullable: true }
+    PensionVersionResponse:
+      allOf: [{ $ref: '#/components/schemas/PensionVersionRequest' }, { $ref: '#/components/schemas/VersionBaseResponse' }]
+    PensionVersionPage:
+      type: object
+      required: [items, pageInfo]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/PensionVersionResponse' } }, pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' } }
+    SunatFormatRequest:
+      type: object
+      required: [tipoLibro, versionFormato, estructura, fechaInicio]
+      properties:
+        tipoLibro: { type: string, enum: [Compras, Ventas] }
+        versionFormato: { type: string, minLength: 1, maxLength: 20 }
+        estructura:
+          type: object
+          additionalProperties: false
+          required: [columns]
+          properties:
+            columns:
+              type: array
+              minItems: 11
+              maxItems: 11
+              uniqueItems: true
+              items:
+                type: string
+                enum: [periodo, tipoDocumento, numeroDocumento, tipoComprobante, serie, numero, fechaEmision, baseImponible, baseExonerada, igv, total]
+        fechaInicio: { type: string, format: date }
+        fechaFin: { type: string, format: date, nullable: true }
+    SunatFormatResponse:
+      allOf:
+        - { $ref: '#/components/schemas/SunatFormatRequest' }
+        - { type: object, required: [id, estado], properties: { id: { type: integer, format: int64 }, estado: { type: string, enum: [Draft, Active, Closed] } } }
+    SunatFormatPage:
+      type: object
+      required: [items, pageInfo]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/SunatFormatResponse' } }, pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' } }
+    AuditEventResponse:
+      type: object
+      required: [id, usuario, rolActor, modulo, accion, entidad, resultado, fechaEvento, correlationId]
+      properties:
+        id: { type: integer, format: int64 }
+        usuarioId: { type: integer, format: int64, nullable: true }
+        usuario: { type: string, nullable: true }
+        rolActor: { type: string, nullable: true }
+        modulo: { type: string }
+        accion: { type: string }
+        entidad: { type: string }
+        entidadId: { type: string, nullable: true }
+        resultado: { type: string, enum: [Success, Failure, Blocked] }
+        datos: { type: object, additionalProperties: true }
+        fechaEvento: { type: string, format: date-time }
+        correlationId: { type: string }
+    AuditEventPage:
+      type: object
+      required: [items, pageInfo]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/AuditEventResponse' } }, pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' } }

@@ -1,0 +1,462 @@
+openapi: 3.0.3
+info: { title: Payroll API, version: 2.0.0 }
+security: [{ bearerAuth: [] }]
+paths:
+  /api/departamentos:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listDepartamentos
+      x-roles: &payrollRoles [Administrador RRHH, Administrador Sistema]
+      parameters: &paging
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+      responses:
+        '200': { description: Department page, content: { application/json: { schema: { $ref: '#/components/schemas/DepartamentoPage' } } } }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createDepartamento
+      x-roles: *payrollRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartamentoRequest' } } } }
+      responses:
+        '201': { description: Department created, content: { application/json: { schema: { $ref: '#/components/schemas/DepartamentoResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/departamentos/{id}:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: updateDepartamento
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartamentoRequest' } } } }
+      responses:
+        '200': { description: Department updated, content: { application/json: { schema: { $ref: '#/components/schemas/DepartamentoResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+    delete:
+      operationId: deactivateDepartamento
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Department deactivated, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/departamentos/{id}/reactivar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: reactivateDepartamento
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Department reactivated, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/empleados:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listEmpleados
+      x-roles: *payrollRoles
+      parameters:
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: departamentoId, in: query, schema: { type: integer, format: int64 } }
+        - { name: activo, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: Employee page, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeePage' } } } }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createEmpleado
+      x-roles: *payrollRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeeRequest' } } } }
+      responses:
+        '201': { description: Employee created, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeeResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/empleados/{id}:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: getEmpleado
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Employee detail, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeeResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    put:
+      operationId: updateEmpleado
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeeRequest' } } } }
+      responses:
+        '200': { description: Employee updated, content: { application/json: { schema: { $ref: '#/components/schemas/EmployeeResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    delete:
+      operationId: deactivateEmpleado
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Employee deactivated, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/empleados/{id}/reactivar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    put:
+      operationId: reactivateEmpleado
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Employee reactivated, content: { application/json: { schema: { $ref: '../shared-api-components.yaml#/components/schemas/CommandResult' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/horas-extra:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listHorasExtra
+      x-roles: *payrollRoles
+      parameters:
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PeriodoQuery' }
+        - { name: empleadoId, in: query, schema: { type: integer, format: int64 } }
+        - { name: estado, in: query, schema: { type: string, enum: [Draft, Approved, Cancelled] } }
+      responses:
+        '200': { description: Overtime page, content: { application/json: { schema: { $ref: '#/components/schemas/HorasExtraPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+    post:
+      operationId: createHorasExtra
+      x-roles: *payrollRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/HorasExtraRequest' } } } }
+      responses:
+        '201': { description: Draft overtime created, content: { application/json: { schema: { $ref: '#/components/schemas/HorasExtraResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/horas-extra/{id}/aprobar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: approveHorasExtra
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Overtime approved, content: { application/json: { schema: { $ref: '#/components/schemas/HorasExtraResponse' } } } }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/horas-extra/{id}/cancelar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: cancelHorasExtra
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/Id' }]
+      responses:
+        '200': { description: Overtime cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/HorasExtraResponse' } } } }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+  /api/planilla/calcular:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: calculatePayroll
+      x-roles: *payrollRoles
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PayrollCalculationRequest' } } } }
+      responses:
+        '200': { description: Draft payroll calculated or recalculated, content: { application/json: { schema: { $ref: '#/components/schemas/PeriodoPlanillaResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/planilla/periodos:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: listPayrollPeriods
+      x-roles: *payrollRoles
+      parameters:
+        - { $ref: '../shared-api-components.yaml#/components/parameters/Page' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/PageSize' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortBy' }
+        - { $ref: '../shared-api-components.yaml#/components/parameters/SortDirection' }
+        - { name: estado, in: query, schema: { type: string, enum: [Draft, Finalized, Cancelled] } }
+      responses:
+        '200': { description: Payroll-period page, content: { application/json: { schema: { $ref: '#/components/schemas/PeriodoPlanillaPage' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/planilla/dashboard:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: getPayrollDashboard
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoQuery' }]
+      responses:
+        '200': { description: Operational payroll dashboard for RRHH, content: { application/json: { schema: { $ref: '#/components/schemas/PayrollDashboardResponse' } } } }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/planilla/{periodo}/finalizar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: finalizePayroll
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoPath' }]
+      responses:
+        '200': { description: Payroll finalized and ledger Draft created, content: { application/json: { schema: { $ref: '#/components/schemas/PeriodoPlanillaResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/planilla/{periodo}/cancelar:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    post:
+      operationId: cancelPayroll
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoPath' }]
+      responses:
+        '200': { description: Draft payroll cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/PeriodoPlanillaResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/planilla:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: getPayroll
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoQuery' }]
+      responses:
+        '200': { description: Payroll period and employee results, content: { application/json: { schema: { $ref: '#/components/schemas/PeriodoPlanillaResponse' } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/planilla/{periodo}/export/pdf:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: exportPayrollPdf
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoPath' }]
+      responses:
+        '200': { description: Payslip ZIP/PDF bytes from persisted Draft or Finalized results, content: { application/zip: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+  /api/planilla/{periodo}/export/excel:
+    parameters:
+      - { $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId' }
+    get:
+      operationId: exportPayrollExcel
+      x-roles: *payrollRoles
+      parameters: [{ $ref: '../shared-api-components.yaml#/components/parameters/PeriodoPath' }]
+      responses:
+        '200': { description: Payroll workbook from persisted Draft or Finalized results, content: { application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '../shared-api-components.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    DepartamentoRequest:
+      type: object
+      required: [nombre]
+      properties: { nombre: { type: string, minLength: 1, maxLength: 100 }, descripcion: { type: string, maxLength: 250 } }
+    DepartamentoResponse:
+      allOf:
+        - { $ref: '#/components/schemas/DepartamentoRequest' }
+        - { type: object, required: [id, activo, empleadosActivos], properties: { id: { type: integer, format: int64 }, activo: { type: boolean }, empleadosActivos: { type: integer, minimum: 0 } } }
+    DepartamentoPage:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/DepartamentoResponse' } }
+        pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' }
+    EmployeeRequest:
+      type: object
+      required: [dni, nombres, apellidos, fechaNacimiento, fechaIngreso, departamentoId, cargo, salarioBase, tipoDescuentoId, banco, numeroCuenta]
+      properties:
+        dni: { type: string, pattern: '^\d{8}$' }
+        nombres: { type: string, minLength: 2, maxLength: 100, pattern: '^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$', description: Letters separated by single spaces. }
+        apellidos: { type: string, minLength: 2, maxLength: 100, pattern: '^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$', description: Letters separated by single spaces. }
+        fechaNacimiento: { type: string, format: date, description: Employee must be at least 18 on the request date. }
+        fechaIngreso: { type: string, format: date }
+        departamentoId: { type: integer, format: int64 }
+        cargo: { type: string, minLength: 1, maxLength: 80, pattern: '.*\S.*' }
+        salarioBase: { type: number, format: double, multipleOf: 0.01, exclusiveMinimum: 0, maximum: 99999999.99 }
+        tipoDescuentoId: { type: integer, format: int64 }
+        banco: { type: string, minLength: 1, maxLength: 80, pattern: '.*\S.*' }
+        numeroCuenta: { type: string, pattern: '^\d{14,20}$' }
+    EmployeeResponse:
+      allOf:
+        - { $ref: '#/components/schemas/EmployeeRequest' }
+        - { type: object, required: [id, activo, departamento, tipoDescuento, fechaCreacion], properties: { id: { type: integer, format: int64 }, activo: { type: boolean }, departamento: { type: string }, tipoDescuento: { type: string, enum: [AFP, ONP] }, fechaCreacion: { type: string, format: date-time } } }
+    EmployeePage:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/EmployeeResponse' } }
+        pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' }
+    HorasExtraRequest:
+      type: object
+      required: [empleadoId, periodo, horasPrimerasDos, horasPosteriores]
+      properties:
+        empleadoId: { type: integer, format: int64 }
+        periodo: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        horasPrimerasDos: { type: number, multipleOf: 0.01, minimum: 0, maximum: 9999.99 }
+        horasPosteriores: { type: number, multipleOf: 0.01, minimum: 0, maximum: 9999.99 }
+    HorasExtraResponse:
+      allOf:
+        - { $ref: '#/components/schemas/HorasExtraRequest' }
+        - { type: object, required: [id, dni, empleado, departamento, estado, fechaRegistro, fechaAprobacion, aprobadoPorId], properties: { id: { type: integer, format: int64 }, dni: { type: string }, empleado: { type: string }, departamento: { type: string }, estado: { type: string, enum: [Draft, Approved, Cancelled] }, fechaRegistro: { type: string, format: date-time }, fechaAprobacion: { type: string, format: date-time, nullable: true }, aprobadoPorId: { type: integer, format: int64, nullable: true } } }
+    HorasExtraPage:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/HorasExtraResponse' } }
+        pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' }
+    PayrollCalculationRequest:
+      type: object
+      required: [periodo]
+      properties: { periodo: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' } }
+    PayrollDashboardResponse:
+      type: object
+      required: [periodo, empleadosActivos, empleadosElegibles, datosIncompletos, periodoEstado, totalBruto, totalNeto, costoPlanilla, correlationId]
+      properties:
+        periodo: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        empleadosActivos: { type: integer, minimum: 0 }
+        empleadosElegibles: { type: integer, minimum: 0 }
+        datosIncompletos: { type: integer, minimum: 0 }
+        periodoEstado: { type: string, enum: [SinCalcular, Draft, Finalized, Cancelled] }
+        totalBruto: { type: number, multipleOf: 0.01 }
+        totalNeto: { type: number, multipleOf: 0.01 }
+        costoPlanilla: { type: number, multipleOf: 0.01, description: Cash gross plus CTS and gratification provisions. }
+        correlationId: { type: string }
+    PayrollEmployeeResult:
+      type: object
+      required: [empleadoId, nombre, departamentoId, departamento, salarioBase, horasExtraMonto, totalBruto, tipoDescuento, configDescuentoVersionId, configDescuentoPorcentaje, afp, onp, descuentosAdicionales, totalDescuentos, totalNeto, provisionGratificacion, provisionCts, costoTotal]
+      properties:
+        empleadoId: { type: integer, format: int64 }
+        nombre: { type: string }
+        departamentoId: { type: integer, format: int64 }
+        departamento: { type: string }
+        salarioBase: { type: number, multipleOf: 0.01 }
+        totalBruto: { type: number, multipleOf: 0.01 }
+        horasExtraMonto: { type: number, multipleOf: 0.01 }
+        tipoDescuento: { type: string, enum: [AFP, ONP] }
+        configDescuentoPorcentaje: { type: number, multipleOf: 0.01, minimum: 0, description: Effective-dated pension percentage applied to this employee result. }
+        afp: { type: number, multipleOf: 0.01 }
+        onp: { type: number, multipleOf: 0.01 }
+        descuentosAdicionales: { type: number, multipleOf: 0.01, enum: [0], description: Fixed at zero in the approved P0 scope. }
+        totalDescuentos: { type: number, multipleOf: 0.01 }
+        totalNeto: { type: number, multipleOf: 0.01 }
+        provisionGratificacion: { type: number, multipleOf: 0.01 }
+        provisionCts: { type: number, multipleOf: 0.01 }
+        costoTotal: { type: number, multipleOf: 0.01, description: Total gross plus gratification and CTS provisions for this employee. }
+        configDescuentoVersionId: { type: integer, format: int64 }
+    PeriodoPlanillaResponse:
+      type: object
+      required: [id, periodo, estado, totalBruto, totalDescuentos, totalNeto, totalProvisionGratificacion, totalProvisionCts, costoPlanilla, fechaCalculo, fechaFinalizacion, finalizadoPorId, resultados, correlationId]
+      properties:
+        id: { type: integer, format: int64 }
+        periodo: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        estado: { type: string, enum: [Draft, Finalized, Cancelled] }
+        totalBruto: { type: number, multipleOf: 0.01 }
+        totalDescuentos: { type: number, multipleOf: 0.01 }
+        totalNeto: { type: number, multipleOf: 0.01 }
+        totalProvisionGratificacion: { type: number, multipleOf: 0.01 }
+        totalProvisionCts: { type: number, multipleOf: 0.01 }
+        costoPlanilla: { type: number, multipleOf: 0.01, description: Total gross plus gratification and CTS provisions. }
+        fechaCalculo: { type: string, format: date-time }
+        fechaFinalizacion: { type: string, format: date-time, nullable: true }
+        finalizadoPorId: { type: integer, format: int64, nullable: true }
+        asientoDraftId: { type: integer, format: int64, nullable: true }
+        resultados: { type: array, items: { $ref: '#/components/schemas/PayrollEmployeeResult' } }
+        correlationId: { type: string }
+    PeriodoPlanillaSummary:
+      type: object
+      required: [id, periodo, estado, empleados, totalBruto, totalDescuentos, totalNeto, fechaCalculo, fechaFinalizacion]
+      properties:
+        id: { type: integer, format: int64 }
+        periodo: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        estado: { type: string, enum: [Draft, Finalized, Cancelled] }
+        empleados: { type: integer, minimum: 0 }
+        totalBruto: { type: number, multipleOf: 0.01 }
+        totalDescuentos: { type: number, multipleOf: 0.01 }
+        totalNeto: { type: number, multipleOf: 0.01 }
+        fechaCalculo: { type: string, format: date-time }
+        fechaFinalizacion: { type: string, format: date-time, nullable: true }
+    PeriodoPlanillaPage:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PeriodoPlanillaSummary' } }
+        pageInfo: { $ref: '../shared-api-components.yaml#/components/schemas/PageInfo' }
