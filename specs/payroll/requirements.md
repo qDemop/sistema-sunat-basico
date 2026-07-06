@@ -41,3 +41,31 @@ Manage employees and calculate payroll according to Peruvian payroll rules defin
 | PAY-NFR-003 | Employee list and result tables must support sorting, filtering, pagination, and totals. |
 | PAY-NFR-004 | Common payroll tasks must be completable in no more than 3 interactions from the dashboard. |
 | PAY-NFR-005 | Payroll operations must be auditable by user, date, period, and result. |
+
+## Traceability Cross-References
+
+### Consolidated Requirements (see `docs/requirements.md`)
+
+| Module FR/NFR | Consolidated ID |
+|---|---|
+| PAY-FR-001..003 | RF-001 (Gestion de Empleados) |
+| PAY-FR-004..008, 015 | RF-002 (Calculo de Planillas), RF-018 (Tasas Previsionales) |
+| PAY-FR-009 | RF-003 (Reporte de Pago) |
+| PAY-FR-011 | RF-010 (Gestion de Departamentos) |
+| PAY-FR-012 | RF-011 (Registro de Horas Extra) |
+| PAY-FR-013 | RF-016 (Ciclo de Periodo de Planilla) |
+| PAY-FR-014 | RF-017 (Reactivacion Logica) |
+| PAY-FR-016 | RF-019 (Contabilizacion de Origenes) |
+| PAY-FR-017 | RF-023 (Contratos API - dashboard) |
+| PAY-NFR-001 | RNF-001 (Rendimiento 30s/100emp), RNF-EDI-01 |
+| PAY-NFR-003..004 | RNF-003 (Usabilidad) |
+| PAY-NFR-005 | RF-022 (Auditoria) |
+
+### User Stories and Acceptance Tests
+
+| User story | Workflows | Acceptance test IDs |
+|---|---|---|
+| US-002 (Employee registration) | WF-013 Employee creation, WF-014 Employee update, WF-015 Employee deactivate/reactivate | WF-AT-013, WF-AT-014, WF-AT-015 |
+| US-003 (Payroll calculation) | WF-016..018 Overtime, WF-019 Calculate, WF-020 Recalculate, WF-021 Finalize, WF-022 Cancel, WF-023 Audit, WF-024 Payroll-to-GL | WF-AT-016..WF-AT-024 |
+
+Department workflows: WF-AT-007, WF-AT-008, WF-AT-009. Full workflow detail: `tests/traceability/workflow-traceability.md` (Payroll table).

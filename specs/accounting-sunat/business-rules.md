@@ -49,3 +49,16 @@
 - SUNAT format versions follow Draft -> Active -> Closed, cannot overlap by book type, and Active/Closed versions are immutable.
 - `estructura_json` is `{ "columns": [...] }` with exactly the eleven unique canonical tokens: periodo, tipoDocumento, numeroDocumento, tipoComprobante, serie, numero, fechaEmision, baseImponible, baseExonerada, igv, total. Array order is export order; each token maps directly to the same-named immutable bridge snapshot field. Unknown/missing/duplicate tokens are invalid.
 - Direct electronic submission to SUNAT is out of scope.
+
+## Out of Scope
+
+The following SUNAT tax regimes are explicitly out of scope for the MVP basic ERP and must not be implemented. They are documented here to prevent ambiguity during sprints.
+
+- **Detracciones**: the SUNAT advance-payment withholding system for purchases of goods, services, and construction. No `detraccion` fields, no `SP_DETRACCION` calculation, and no detraction voucher rows are part of the MVP.
+- **Retenciones de Renta de cuarta categoria**: the withholding applied to `Recibo por Honorarios` (voucher type `02`). `Recibo por Honorarios` remains a supported voucher type for registration and book inclusion, but the withholding computation, retention voucher, and resulting renta retention accounting entries are not implemented.
+- **Impuesto a la Renta de quinta categoria**: monthly IR withholding on salaries. See `specs/payroll/business-rules.md` for the payroll-side deferral. No IR-5ta accounting entries are generated.
+- **Percepciones**: the advance-payment collection system on sales. Not implemented.
+- **Direct PLE submission to SUNAT**: book generation produces immutable versioned rows suitable for export; the actual SUNAT electronic submission channel is out of scope.
+- **Retenciones del regimen MYPE**: not applicable to the MVP scope.
+
+These exclusions are governed by `docs/p0-decisions.md` scope boundaries. Adding any of them later requires a new spec under `specs/accounting-sunat/` and an explicit scope decision.

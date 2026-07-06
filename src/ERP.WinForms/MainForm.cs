@@ -1,10 +1,15 @@
+using MediatR;
+
 namespace ERP.WinForms;
 
 public sealed class MainForm : Form
 {
-    public MainForm()
+    private readonly IMediator _mediator;
+
+    public MainForm(IMediator mediator)
     {
-        Text = "ERP";
+        _mediator = mediator;
+        Text = "ERP - Sistema SUNAT Basico";
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1024;
         Height = 768;

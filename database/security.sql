@@ -47,6 +47,10 @@ GRANT INSERT (codigo, descripcion, version, tasa_igv, fecha_inicio, fecha_fin)
     ON admin.config_tributaria_version TO rol_app_write;
 GRANT INSERT (tipo_libro, version_formato, estructura_json, fecha_inicio, fecha_fin)
     ON admin.config_sunat_formato TO rol_app_write;
+GRANT INSERT (ruc, razon_social, nombre_comercial, domicilio_fiscal, regimen)
+    ON admin.empresa TO rol_app_write;
+GRANT UPDATE (ruc, razon_social, nombre_comercial, domicilio_fiscal, regimen, activo)
+    ON admin.empresa TO rol_app_write;
 
 GRANT INSERT (
     id_tipo_comp, id_config_tributaria_version, id_comprobante_referencia,

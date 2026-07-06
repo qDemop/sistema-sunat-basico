@@ -179,9 +179,12 @@ components:
     ComprobanteRequest:
       type: object
       required: [tipoMovimiento, tipoComprobanteId, serie, numero, fechaEmision, tipoDocumento, numeroDocumento, razonSocial, baseImponible, baseExonerada, tipoOperacion]
-      anyOf:
-        - properties: { baseImponible: { type: number, multipleOf: 0.01, minimum: 0, exclusiveMinimum: true, maximum: 99999999.99 } }
-        - properties: { baseExonerada: { type: number, multipleOf: 0.01, minimum: 0, exclusiveMinimum: true, maximum: 99999999.99 } }
+      description: |
+        Base validation rules enforced by the application layer (FluentValidation):
+        - tipoOperacion=Gravada: baseImponible must be > 0 (taxable base).
+        - tipoOperacion=Exonerada: baseExonerada must be > 0 (exempt base).
+        - tipoOperacion=Inafecta: both baseImponible and baseExonerada must be 0 (unaffected operation; the operation value is recorded on the voucher total without IGV).
+        At least one base must be positive for Gravada/Exonerada so the voucher can produce the required source journal entry. The previous anyOf constraint was removed because it conflicted with Inafecta operations where both bases are legitimately zero.
       properties:
         tipoMovimiento: { type: string, enum: [Compra, Venta] }
         tipoComprobanteId: { type: integer, format: int64 }

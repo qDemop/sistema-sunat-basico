@@ -66,7 +66,8 @@ components:
         user: { $ref: '#/components/schemas/UserSession' }
         modules:
           type: array
-          items: { type: string, enum: [Payroll, AccountingSUNAT, GeneralLedgerRead, GeneralLedgerWrite, Reports, Administration] }
+          items: { type: string, enum: [Authentication, Payroll, AccountingSUNAT, GeneralLedger, Reports, Administration] }
+          description: Modules visible to the authenticated user based on role. Canonical six-module enum matches `specs/administration/api-contract.yaml` RoleResponse.modulos and the role matrix in `docs/database-design.md`. Read-only vs write access within a module is governed by the role name, not by splitting the enum.
         correlationId: { type: string }
     UserSession:
       type: object

@@ -77,6 +77,10 @@ Versioned IGV rule with code fixed to `IGV`, percentage 0-100, effective dates, 
 
 Book type Compras/Ventas; unique format version; governed JSON object whose only property is the eleven-token `columns` array; effective dates; Draft/Active/Closed state. Active ranges cannot overlap. Active/Closed rows are trigger-protected and application roles cannot update them directly.
 
+### EMPRESA
+
+Own-company (emitter) identity required for SUNAT voucher and book emission. RUC is 11 digits and unique; razón social and domicilio fiscal are required; régimen is one of `Regimen MYPE Tributo Especial`, `Regimen General`, `Otro`. A partial unique index enforces at most one active row. Added in Sprint 0 remediation to close the SUNAT-emit gap; before this, `COMPROBANTE` only stored the counterparty.
+
 ## Accounting SUNAT
 
 ### TIPO_COMPROBANTE

@@ -55,3 +55,27 @@ Sprint 1 uses role-based RBAC only. Fine-grained permissions are out of Sprint 1
 | General Ledger commands | No | Yes | No | Yes |
 | Reports | No | No | Yes | Yes |
 | Administration | No | No | No | Yes |
+
+## Traceability Cross-References
+
+### Consolidated Requirements (see `docs/requirements.md`)
+
+| Module FR/NFR | Consolidated ID |
+|---|---|
+| AUTH-FR-001..008, 010..013 | RF-008 (Autenticacion JWT y RBAC) |
+| AUTH-FR-013 (audit fields) | RF-022 (Auditoria) |
+| AUTH-FR-011 (API contracts) | RF-023 (Contratos API) |
+| AUTH-NFR-001..002 | RNF-002 (Seguridad), RNF-ELI-02 (JWT required) |
+| AUTH-NFR-003 | RNF-002 (BCrypt) |
+| AUTH-NFR-004 | RNF-ELI-03 (correlation ID) |
+| AUTH-NFR-005 | RNF-003 (Usabilidad) |
+| AUTH-NFR-006 | RF-008 (lockout) |
+| AUTH-NFR-007 | RF-008 (role-only RBAC) |
+
+### User Stories and Acceptance Tests
+
+| User story | Workflows | Acceptance test IDs |
+|---|---|---|
+| US-001 (Valid login) | WF-001 Login, WF-002 Logout, WF-003 Failed login/lockout | WF-AT-001, WF-AT-002, WF-AT-003 |
+
+Full workflow detail: `tests/traceability/workflow-traceability.md` (Authentication and Administration table) and `tests/acceptance/p0-lifecycle-acceptance.md`.

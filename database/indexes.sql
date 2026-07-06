@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS ix_detalle_planilla_config ON payroll.detalle_planill
 
 CREATE INDEX IF NOT EXISTS ix_config_tributaria_vigencia ON admin.config_tributaria_version(codigo, fecha_inicio, fecha_fin);
 CREATE INDEX IF NOT EXISTS ix_config_sunat_vigencia ON admin.config_sunat_formato(tipo_libro, fecha_inicio, fecha_fin);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_empresa_activa ON admin.empresa(activo) WHERE activo = TRUE;
 
 CREATE INDEX IF NOT EXISTS ix_comprobante_documento ON accounting.comprobante(tipo_documento, numero_documento);
 CREATE INDEX IF NOT EXISTS ix_comprobante_fecha ON accounting.comprobante(fecha_emision);

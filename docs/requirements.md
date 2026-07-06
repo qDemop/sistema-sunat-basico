@@ -53,7 +53,7 @@ This catalog consolidates all requirements extracted from the PDFs.
 |---|---|---|
 | RF-ELI-01 | Autenticacion JWT | Provide `POST /api/auth/login`, validate credentials against PostgreSQL, and return a signed JWT with user claims and configurable expiration. |
 | RF-ELI-02 | CRUD de empleados | Provide REST endpoints for listing, getting, creating, updating, and logically deleting employees. |
-| RF-ELI-03 | Ciclo de planilla | Provide calculate, recalculate, finalize, and cancel commands identified by `periodo`; calculation executes `sp_calcular_planilla(periodo, actor)` and returns the period aggregate with employee results. |
+| RF-ELI-03 | Ciclo de planilla | Provide calculate, recalculate, finalize, and cancel commands identified by `periodo`; calculation executes `sp_calcular_planilla(periodo, actor, correlation)` and returns the period aggregate with employee results. |
 | RF-ELI-04 | Registro y consulta de comprobantes | Provide endpoints to register and query vouchers with RUC validation and automatic IGV calculation. |
 | RF-ELI-05 | Generacion de libros SUNAT | Provide a validation query, a `POST` generation command, immutable-version queries, and exports by period/type with format and tax-version traceability. |
 | RF-ELI-06 | Contratos de libro mayor | Provide typed endpoints for account lifecycle, period closing, journal creation/editing, posting, cancellation, reversal, and read-only Gerente queries. |

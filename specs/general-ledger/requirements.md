@@ -34,3 +34,28 @@ Provide the accounting ledger foundation required for balance sheet, income stat
 | GL-NFR-001 | Ledger posting must be auditable by user, date, source module, source entity, and result. |
 | GL-NFR-002 | Ledger queries must support report generation by accounting period. |
 | GL-NFR-003 | Ledger records must preserve at least 5 years of operational history. |
+
+## Traceability Cross-References
+
+### Consolidated Requirements (see `docs/requirements.md`)
+
+| Module FR/NFR | Consolidated ID |
+|---|---|
+| GL-FR-001..011 | RF-015 (Libro Mayor Contable) |
+| GL-FR-012 | RF-019 (Contabilizacion de Origenes) |
+| GL-FR-007 | RF-021 (Fuentes de Reportes) - cross-ref with Reports |
+| GL-NFR-001 | RF-022 (Auditoria) |
+| GL-NFR-002 | RF-023 (Contratos API - ledger queries) |
+| GL-NFR-003 | RNF-EDI-04 (5 years history) |
+
+### User Stories and Acceptance Tests
+
+No dedicated user story; ledger workflows support US-003 (payroll finalize -> Draft entry) and US-004/US-005 (voucher registration -> Draft entry).
+
+| Workflows | Acceptance test IDs |
+|---|---|
+| WF-036 Create account, WF-037 Update account, WF-038 Account deactivate/reactivate | WF-AT-036, WF-AT-037, WF-AT-038 |
+| WF-039 Create period, WF-040 Close period, WF-041 Reopen (OUT OF SCOPE) | WF-AT-039, WF-AT-040, WF-AT-041 |
+| WF-042 Create journal, WF-043 Post, WF-044 Cancel Draft, WF-045 Reverse Posted, WF-046 Balance validation, WF-047 Date/period validation | WF-AT-042..WF-AT-047 |
+
+Full workflow detail: `tests/traceability/workflow-traceability.md` (General Ledger table).

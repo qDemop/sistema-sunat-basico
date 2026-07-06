@@ -46,3 +46,16 @@
 - Payslip PDF export is available only after payroll has been calculated.
 - Payroll Excel export must include all visible result columns and totals.
 - Exported amounts must match persisted payroll results.
+
+## Out of Scope
+
+The following tax and discount concepts are explicitly out of scope for the MVP basic ERP and must not be implemented in the Payroll module. They are documented here to prevent ambiguity during sprints.
+
+- **Impuesto a la Renta de quinta categoria (IR 5ta)**: the monthly progressive withholding on salaries computed from the employee's projected annual rent and the SUNAT tramo table. No IR-5ta calculation, no `renta_quinta` payroll detail row, and no IR-5ta accounting entry are part of the MVP. `descuentos_adicionales` is persisted as `S/ 0.00` and IR-5ta capture/configuration is deferred.
+- **Detracciones**: any detraction withholding on payroll-related services is out of scope.
+- **Retenciones de Renta de cuarta categoria**: not a payroll concern; documented under `specs/accounting-sunat/business-rules.md`.
+- **Essalud and AFP employer contributions**: employer-side labor contributions (Essalud 9%, SCTR, etc.) are not calculated by the MVP payroll. Only employee-side AFP/ONP deductions are computed.
+- **Gratification legal payment and CTS deposit execution**: the July/December gratification cash payment and the CTS bank deposit are out of scope. Only the monthly accounting provision is computed.
+- **Utilities and participations**: year-end utility sharing and CTS settlement accruals are out of scope.
+
+These exclusions are governed by `docs/p0-decisions.md` scope boundaries. Adding any of them later requires a new spec under `specs/payroll/` and an explicit scope decision.
