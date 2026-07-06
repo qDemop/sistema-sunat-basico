@@ -83,6 +83,7 @@ Sprint 1 RBAC rule: permission tables are not part of the canonical Sprint 1 sch
 |---|---|---|
 | CONFIG_TRIBUTARIA_VERSION | Versioned IGV configuration. | Stores code, percentage, version, effective date range. |
 | CONFIG_SUNAT_FORMATO | Governed eleven-column SUNAT format with version and effective dates. | Token order controls export order without code changes. |
+| EMPRESA | Own-company (emitter) identity for SUNAT voucher and book emission. | RUC 11 digits unique, razón social, domicilio fiscal, régimen. One active row enforced by partial unique index. Added Sprint 0 remediation. |
 | AUDIT_LOG | Sensitive operation history. | Required for traceability. |
 | BACKUP_LOG | `IMPLEMENTATION PENDING`; not present in `database/schema.sql` and not used by an in-scope P1 workflow. | Operational tracking is deferred without implying persistence exists. |
 | MIGRATION_LOG | `IMPLEMENTATION PENDING`; not present in `database/schema.sql` and not used by an in-scope P1 workflow. | Migration tooling evidence is deferred. |

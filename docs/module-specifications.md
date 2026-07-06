@@ -105,7 +105,7 @@
 - `PLANILLA`.
 - `DETALLE_PLANILLA`.
 - `CONFIG_DESCUENTO_PREVISIONAL_VERSION`.
-- `sp_calcular_planilla(periodo, actor)`.
+- `sp_calcular_planilla(periodo, actor, correlation)`.
 - Reports module consumes payroll outputs.
 - Ledger module may consume finalized payroll for accounting entries.
 
@@ -170,7 +170,7 @@
 - `LIBRO_CONTABLE`.
 - `TIPO_LIBRO`.
 - `COMPROBANTE_LIBRO`.
-- `sp_generar_libro(tipo, periodo, actor)`.
+- `sp_generar_libro(tipo, periodo, aceptar_observaciones, actor, correlation)`.
 - Administration module for tax configuration.
 - Ledger module for accounting entries.
 - Reports module consumes accounting and ledger outputs.

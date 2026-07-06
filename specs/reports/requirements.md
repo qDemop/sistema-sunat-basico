@@ -35,3 +35,25 @@ Provide financial visibility to management through dashboards, reports, KPIs, an
 | REP-NFR-002 | Report exports must match values shown in the UI. |
 | REP-NFR-003 | Reports must be restricted to Gerente Financiero and Administrador Sistema unless role policy changes. |
 | REP-NFR-004 | Financial calculations must be traceable to posted ledger entries and source payroll/accounting records. |
+
+## Traceability Cross-References
+
+### Consolidated Requirements (see `docs/requirements.md`)
+
+| Module FR/NFR | Consolidated ID |
+|---|---|
+| REP-FR-001..009 | RF-007 (Reportes Financieros) |
+| REP-FR-010, 011 | RF-021 (Fuentes de Reportes y Snapshots) |
+| REP-FR-012 | RF-022 (Auditoria - export history), RF-023 (Contratos API) |
+| REP-NFR-001 | RNF-ELI-01 (API p95 500ms) |
+| REP-NFR-002 | RNF-005 (Mantenibilidad - export parity) |
+| REP-NFR-003 | RF-022 (role restriction) |
+| REP-NFR-004 | RNF-005 (traceability) |
+
+### User Stories and Acceptance Tests
+
+| User story | Workflows | Acceptance test IDs |
+|---|---|---|
+| US-006 (Financial reports) | WF-048 Balance sheet, WF-049 Income statement, WF-050 Payroll report, WF-051 SUNAT report, WF-052 Export report, WF-053 Permission filtering | WF-AT-048..WF-AT-053 |
+
+Full workflow detail: `tests/traceability/workflow-traceability.md` (Reports and UX Governance table).

@@ -44,3 +44,27 @@ Register accounting vouchers, calculate IGV using persisted tax configuration ve
 | ACC-NFR-002 | SUNAT book generation must be auditable by user, period, type, version, totals, and result. |
 | ACC-NFR-003 | Voucher operations must preserve referential integrity and prevent inconsistent totals. |
 | ACC-NFR-004 | Accounting APIs must require JWT and role Contador or Administrador Sistema. |
+
+## Traceability Cross-References
+
+### Consolidated Requirements (see `docs/requirements.md`)
+
+| Module FR/NFR | Consolidated ID |
+|---|---|
+| ACC-FR-001..004, 012, 013, 017, 018 | RF-004 (Registro de Comprobantes), RF-019 (Contabilizacion) |
+| ACC-FR-005 | RF-023 (Contratos API - voucher list filters) |
+| ACC-FR-006..008, 010, 011, 014, 015, 016, 019 | RF-005 (Libro de Compras y Ventas), RF-020 (Validacion y Formato SUNAT) |
+| ACC-FR-003, 009 | RF-006 (Normativa Tributaria SUNAT) |
+| ACC-FR-020 | RF-023 (Contratos API - dashboard) |
+| ACC-NFR-001 | RNF-001 (Rendimiento 60s/1000 vouchers) |
+| ACC-NFR-002 | RF-022 (Auditoria) |
+| ACC-NFR-004 | RNF-ELI-02 (JWT required) |
+
+### User Stories and Acceptance Tests
+
+| User story | Workflows | Acceptance test IDs |
+|---|---|---|
+| US-004 (Voucher registration) | WF-025 Register, WF-026 Update, WF-027 Validate, WF-028 Annul, WF-035 Voucher-to-GL | WF-AT-025..WF-AT-028, WF-AT-035 |
+| US-005 (Book generation) | WF-029 Purchase Book, WF-030 Sales Book, WF-031 Replace version, WF-032 Immutability, WF-033 Included voucher changed, WF-034 Format versioning | WF-AT-029..WF-AT-034 |
+
+Full workflow detail: `tests/traceability/workflow-traceability.md` (Accounting SUNAT table).

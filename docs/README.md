@@ -47,4 +47,4 @@ The specifications reference the PDFs by document and page range when a requirem
 
 Current implementation guidance comes from `requirements.md`, `p0-decisions.md`, `domain-model.md`, `database-design.md`, canonical module specifications/OpenAPI, executable database contracts, UX governance, and traceability/acceptance specifications.
 
-The following are historical, non-canonical reports and must not guide implementation: `gap-analysis.md`, `consistency-report.md`, `p0-remediation-report.md`, `p1-remediation-report.md`, and `net10-migration-report.md`. They preserve prior findings or migration evidence only.
+The following are historical, non-canonical reports and must not guide implementation. They have been moved to `docs/archive/` (see `docs/archive/README.md`): `gap-analysis.md`, `consistency-report.md`, `p0-remediation-report.md`, `p1-remediation-report.md`, and `net10-migration-report.md`. They preserve prior findings or migration evidence only. The former `architecture.md` was merged into `sdd-architecture.md` and removed during Sprint 0 remediation.

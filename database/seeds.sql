@@ -91,4 +91,20 @@ INSERT INTO accounting.periodo_contable(codigo,fecha_inicio,fecha_fin,estado)
 VALUES ('2026-01',DATE '2026-01-01',DATE '2026-01-31','Open')
 ON CONFLICT (codigo) DO NOTHING;
 
+INSERT INTO admin.empresa(ruc, razon_social, nombre_comercial, domicilio_fiscal, regimen, activo)
+VALUES (
+    '20512345671',
+    'ERP Demo S.A.C.',
+    'ERP Demo',
+    'Av. Test 123, Lima',
+    'Regimen MYPE Tributo Especial',
+    TRUE
+)
+ON CONFLICT (ruc) DO UPDATE
+SET razon_social = EXCLUDED.razon_social,
+    nombre_comercial = EXCLUDED.nombre_comercial,
+    domicilio_fiscal = EXCLUDED.domicilio_fiscal,
+    regimen = EXCLUDED.regimen,
+    activo = EXCLUDED.activo;
+
 COMMIT;
