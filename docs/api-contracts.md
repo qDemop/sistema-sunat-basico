@@ -18,6 +18,7 @@ Canonical OpenAPI files are `specs/*/api-contract.yaml`; reusable errors and pag
 | Method | Path | Purpose | Roles |
 |---|---|---|---|
 | POST | `/api/auth/login` | Authenticate, apply lockout, issue JWT with `jti`. | Public |
+| GET | `/api/auth/me` | Return current user session and visible modules. | Any authenticated |
 | POST | `/api/auth/logout` | Revoke current JWT `jti` until expiration. | Any authenticated |
 
 ## Payroll
@@ -133,7 +134,7 @@ Role creation/deletion, fine-grained permission catalogs, refresh tokens, period
 
 | Area | Required DTO families |
 |---|---|
-| Authentication | LoginRequest/Response, LogoutResponse, UserSession. |
+| Authentication | LoginRequest/Response, CurrentUserResponse, LogoutResponse, UserSession. |
 | Payroll | DepartamentoRequest/Response, EmployeeRequest/Response, HorasExtraRequest/Response, PayrollCalculationRequest, PeriodoPlanillaResponse, PayrollEmployeeResult. |
 | Accounting | ComprobanteRequest/Response, LibroValidationResponse, LibroGenerationRequest, LibroContableResponse. |
 | Ledger | PeriodoContableRequest/Response, CuentaContableRequest/Response, AsientoContableRequest/Response, ReversalRequest. |
