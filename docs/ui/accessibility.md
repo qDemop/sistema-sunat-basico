@@ -51,11 +51,17 @@ Avoid relying on placeholder text as the only label.
 
 ## Color and Contrast
 
-- Text and critical UI indicators must meet AA contrast.
-- Error, warning, success, and selected states must use text or shape in addition to color.
-- Focus indicators must be visible against light and neutral surfaces.
-- Disabled states must remain understandable and explainable.
+- Text and critical UI indicators must meet AA contrast in both light and dark themes.
+- Normal text must meet at least 4.5:1 contrast against its background.
+- Large text, meaningful icons, focus indicators, and non-text UI components must meet at least 3:1 contrast.
+- Borders must not carry critical meaning unless they meet at least 3:1 contrast against adjacent colors.
+- Error, warning, success, and selected states must use text, icon, shape, or position in addition to color.
+- Focus indicators must be visible against light, dark, neutral, selected, and elevated surfaces.
+- Keyboard users must be able to identify focus clearly at every step.
+- Sprint 1 WinForms theming applies the Focus token where native controls expose reliable styling, such as themed buttons; other standard controls retain native Windows focus behavior until custom 2 px focus-ring support is added.
+- Disabled states must remain understandable and explainable while clearly inactive.
 - Windows high-contrast preferences must preserve identity, selection, focus, validation, and totals.
+- Theme support must not disable or bypass Windows high-contrast compatibility.
 
 ## Text and Readability
 

@@ -96,7 +96,7 @@ This catalog consolidates all requirements extracted from the PDFs.
 | RNF-LUI-01 | Rendimiento | Main dashboard visible within 3 seconds after application start, excluding login time. |
 | RNF-LUI-02 | Rendimiento | UI interactions must respond in less than 200 ms without freezing the main window. |
 | RNF-LUI-03 | Usabilidad | UI must adapt from 1280x720 to 1920x1080 while preserving readability. |
-| RNF-LUI-04 | Usabilidad | UI must use consistent institutional colors, Segoe UI, and spacing. |
+| RNF-LUI-04 | Usabilidad | UI must use consistent semantic theme colors, Segoe UI, and spacing, with light and dark appearance modes preserving WCAG AA contrast. |
 | RNF-LUI-05 | Accesibilidad | UI must support keyboard navigation and screen reader labels aligned with WCAG 2.1 AA. |
 | RNF-ELI-01 | Rendimiento | API must respond within 500 ms for 95% of requests, excluding network time. |
 | RNF-ELI-02 | Seguridad | All endpoints except login must require a valid JWT and return 401 when missing or expired. |
