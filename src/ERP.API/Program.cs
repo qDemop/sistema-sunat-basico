@@ -1,4 +1,5 @@
 using System.Text;
+using ERP.API.Endpoints;
 using ERP.Application;
 using ERP.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -57,5 +58,7 @@ app.MapGet("/", () => Results.Ok(new { name = "ERP.API", status = "bootstrap" })
     .AllowAnonymous();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .AllowAnonymous();
+
+app.MapAuthEndpoints();
 
 app.Run();
