@@ -28,7 +28,7 @@ The target architecture combines the PDF specification with the requested SDD st
 - JWT authentication and role-based RBAC for Sprint 1.
 - Clean Architecture boundaries.
 - CQRS for separating commands from queries.
-- Repository, Unit of Work, Dependency Injection, and Service Layer patterns.
+- Dependency Injection and Service Layer patterns; Repository and Unit of Work only where they add clarity or transaction safety.
 
 ## Target Stack
 
@@ -40,7 +40,7 @@ The target architecture combines the PDF specification with the requested SDD st
 | Development environment | Visual Studio Community 2026 (18.6). |
 | Database | PostgreSQL 16. |
 | Security | JWT, BCrypt, role-based RBAC for Sprint 1. |
-| Architecture | Clean Architecture with CQRS. |
+| Architecture | Clean Architecture with Modular Monolith and CQRS simple. |
 | Persistence | Dapper + Npgsql and PostgreSQL stored procedures for critical operations. |
 | Reports | PDF and Excel export providers. |
 
@@ -88,6 +88,14 @@ The target architecture combines the PDF specification with the requested SDD st
 - Persist business records in PostgreSQL using a BCNF-oriented relational model.
 - Execute critical data operations transactionally.
 - Keep exports and report generation as application services, not UI logic.
+
+## Implementation Principles and Pattern Governance
+
+`docs/implementation-principles-and-patterns.md` is the canonical implementation guidance for Sprint 1 and later. It formalizes SOLID, Separation of Concerns, DRY, KISS, YAGNI, Fail Fast, Least Privilege, Testability First, approved patterns, forbidden anti-patterns, and AI-assisted implementation rules.
+
+Clean Architecture remains the primary architecture, Modular Monolith is the Sprint 1 system style, and CQRS simple is the use-case organization model. MVC is not the primary architecture for this ERP; it may be referenced only as a web or presentation pattern where applicable.
+
+The canonical implementation flow is WinForms/API -> Application CQRS handlers -> Domain -> Infrastructure/PostgreSQL.
 
 ## Logical Layers
 

@@ -128,3 +128,15 @@ This roadmap is a specification artifact. It does not generate application code.
 - Database design identifies entities, relationships, constraints, indexes, and procedure specs.
 - API contracts identify paths, authentication, inputs, outputs, and errors.
 - Roadmap identifies delivery order, dependencies, risks, and exit criteria.
+
+## Coding-Level Definition of Done
+
+- SOLID is respected in classes, handlers, services, interfaces, and adapters.
+- No business logic exists in WinForms forms or API controllers.
+- CQRS handlers are used for use cases.
+- Application remains independent from Infrastructure implementations.
+- Authorization happens before mutations.
+- Audit is recorded for sensitive operations.
+- Unit tests protect critical payroll, tax, ledger, lifecycle, and authorization rules.
+- No unapproved pattern overengineering is introduced.
+- No MVC-as-primary-architecture, microservices, or Event Sourcing is introduced in Sprint 1.

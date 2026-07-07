@@ -34,25 +34,83 @@ Use color to communicate state, not decoration. Text labels must remain the prim
 
 Color must pass contrast requirements for normal text, large text, icons, borders that convey state, and focused elements.
 
-### Canonical Color Tokens
+## Appearance Modes
 
-The baseline appearance is light and follows Windows system high-contrast overrides when enabled.
+Light mode is the default Sprint 1 baseline. Dark mode is an officially supported theme for prolonged desktop work, accessibility comfort, and reduced visual fatigue. System mode is recognized as a user preference target, but OS synchronization remains a future enhancement until settings and Windows appearance integration are introduced.
+
+Appearance rules:
+
+- Themes use semantic tokens only; screens and controls must not hardcode visual colors.
+- Dark mode preserves clarity, hierarchy, deference to content, and low visual noise.
+- Color is never the only state indicator; labels, icons, shape, or position must also communicate state.
+- Foreground/background pairs must meet WCAG AA contrast: 4.5:1 for normal text and 3:1 for large text, icons, focus indicators, and non-text UI components.
+- Borders must not carry critical meaning unless their contrast is at least 3:1 against adjacent colors.
+- Disabled states must remain readable while clearly inactive.
+- Focus rings must remain visible in both light and dark mode.
+- Destructive actions must remain clearly distinguishable in both themes through Danger color plus text, icon, or confirmation language.
+- Windows high-contrast mode may override color values but must preserve role, focus, selection, status, error, and totals.
+
+### Canonical Light Theme Tokens
+
+The baseline appearance is light and follows Windows system high-contrast overrides when enabled. Existing Sprint 0 light values remain canonical.
 
 | Token | Value | Required Use |
 |---|---|---|
-| Primary | `#1F5C99` | Dominant action, selected navigation indicator, active link. |
-| Focus | `#0A66C2` | Keyboard focus ring only. |
+| App background | `#F4F6F8` | Window background outside primary work surfaces. |
+| Surface | `#FFFFFF` | Main content, forms, tables. |
+| Surface subtle | `#F4F6F8` | Header, alternate grouping, read-only region. |
+| Surface elevated | `#FFFFFF` | Panels, flyouts, contextual surfaces. |
+| Border | `#B7BDC7` | Neutral boundaries that do not carry critical meaning. |
+| Border strong | `#4B5563` | Meaningful boundaries requiring stronger separation. |
 | Text primary | `#1B1D21` | Body, labels, table values. |
 | Text secondary | `#4B5563` | Metadata and secondary explanations. |
-| Surface | `#FFFFFF` | Main content. |
-| Surface subtle | `#F4F6F8` | Header, alternate grouping, read-only region. |
-| Border | `#B7BDC7` | Neutral boundaries that do not carry state. |
+| Text muted | `#4B5563` | Low-emphasis helper text that remains readable. |
+| Primary | `#1F5C99` | Dominant action, selected navigation indicator, active link. |
+| Primary hover | `#0A66C2` | Hover or emphasized primary action state. |
+| Focus | `#0A66C2` | Keyboard focus ring only. |
 | Success | `#1F6B3A` | Completed/valid state with text or icon. |
 | Warning | `#7A4D00` | Warning/attention state with text or icon. |
 | Danger | `#B42318` | Error, annulled, destructive consequence. |
 | Information | `#2457A7` | Informational state. |
+| Selection background | `#E6F0FA` | Selected row, selected navigation item, selected option background. |
+| Grid row hover | `#F4F6F8` | Non-selected row hover state. |
+| Grid row selected | `#E6F0FA` | Selected grid row background. |
+| Input background | `#FFFFFF` | Text entry and selection controls. |
+| Input border | `#B7BDC7` | Input boundary. |
+| Input disabled background | `#F4F6F8` | Disabled text entry and selection controls. |
+| Input disabled text | `#4B5563` | Disabled value text. |
 
 State colors are used for text/icons on light surfaces and must not be used as the only indicator. Large filled color areas require a separately verified foreground pair.
+
+### Canonical Dark Theme Tokens
+
+Dark theme uses the same semantic roles as light mode. These values are the initial baseline and require contrast verification when paired with new foreground/background combinations.
+
+| Token | Value | Required Use |
+|---|---|---|
+| App background | `#0F1115` | Window background outside primary work surfaces. |
+| Surface | `#151922` | Main content, forms, tables. |
+| Surface subtle | `#1E2430` | Header, alternate grouping, read-only region. |
+| Surface elevated | `#242B38` | Panels, flyouts, contextual surfaces. |
+| Border | `#3A4352` | Neutral boundaries that do not carry critical meaning. |
+| Border strong | `#596273` | Meaningful boundaries requiring stronger separation. |
+| Text primary | `#F3F6FA` | Body, labels, table values. |
+| Text secondary | `#C5CBD5` | Metadata and secondary explanations. |
+| Text muted | `#8E97A6` | Low-emphasis helper text that remains readable. |
+| Primary | `#8AB4F8` | Dominant action, selected navigation indicator, active link. |
+| Primary hover | `#A7C7FF` | Hover or emphasized primary action state. |
+| Focus | `#7CB7FF` | Keyboard focus ring only. |
+| Success | `#7DDC8A` | Completed/valid state with text or icon. |
+| Warning | `#F2B84B` | Warning/attention state with text or icon. |
+| Danger | `#FF8A80` | Error, annulled, destructive consequence. |
+| Information | `#8AB4F8` | Informational state. |
+| Selection background | `#203A5F` | Selected row, selected navigation item, selected option background. |
+| Grid row hover | `#202633` | Non-selected row hover state. |
+| Grid row selected | `#203A5F` | Selected grid row background. |
+| Input background | `#10141C` | Text entry and selection controls. |
+| Input border | `#4A5364` | Input boundary. |
+| Input disabled background | `#1A1F2A` | Disabled text entry and selection controls. |
+| Input disabled text | `#8E97A6` | Disabled value text. |
 
 ## Typography
 

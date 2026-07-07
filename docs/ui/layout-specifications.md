@@ -4,6 +4,8 @@
 
 El shell adopta la claridad, deference al contenido y jerarquia estable de Apple HIG, adaptadas a una aplicacion empresarial de Windows. La estructura debe permanecer familiar durante jornadas largas y no competir con datos financieros.
 
+El shell usa los tokens semanticos definidos en `design-system.md` para modo claro y oscuro. La interfaz sigue siendo Windows-native con Segoe UI; no replica controles, fuentes ni patrones visuales exclusivos de macOS.
+
 ## Jerarquia del Espacio de Trabajo
 
 ```text
@@ -20,6 +22,14 @@ Ventana principal
 ```
 
 La busqueda global transversal permanece `IMPLEMENTATION PENDING` y no se muestra en el shell activo. Las busquedas locales de cada lista o modulo siguen definidas en su banda de filtros.
+
+## Superficies y Tema
+
+- Shell, barra lateral, espacio de trabajo, grillas, formularios, paneles y dialogos usan tokens semanticos de tema.
+- Los formularios y controles no deben usar colores hardcodeados; deben recibir valores desde la paleta activa.
+- La profundidad visual se logra con capas de superficie, bordes y separacion espacial sutil.
+- Evitar sombras pesadas, gradientes decorativos o fondos de alto contraste que compitan con datos financieros.
+- Los estados de seleccion, foco, error, advertencia, exito y deshabilitado deben ser distinguibles en modo claro y oscuro.
 
 ## Barra Lateral Persistente
 

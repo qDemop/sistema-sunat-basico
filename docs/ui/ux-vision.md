@@ -2,7 +2,7 @@
 
 ## Purpose
 
-ERP.WinForms must feel like a focused desktop productivity tool: calm, fast, legible, and trustworthy under daily operational pressure. The experience adapts the Apple Human Interface Guidelines philosophy to an enterprise ERP context: clarity, deference to content, consistency, progressive disclosure, meaningful depth, and simplicity that preserves operational power.
+ERP.WinForms must feel like a focused Windows desktop productivity tool: calm, fast, legible, and trustworthy under daily operational pressure. The experience adapts the Apple Human Interface Guidelines philosophy to an enterprise ERP context: clarity, deference to content, consistency, progressive disclosure, meaningful depth, and simplicity that preserves operational power. It does not imitate macOS controls, fonts, icons, or platform conventions.
 
 This document defines the UX foundation for the user-visible modules `Iniciar sesion`, `Inicio`, `Administracion`, `Empleados`, `Planillas`, `Contabilidad`, `SUNAT`, and `Reportes` before business implementation begins. It is a specification artifact only. It does not define application code, control classes, or implementation mechanics.
 
@@ -20,6 +20,17 @@ All visible interface labels, statuses, messages, commands, exports, and confirm
 ## Product Experience Statement
 
 The ERP should help HR, Accounting, Administration, and SUNAT operators complete repetitive, high-consequence financial work with confidence. The interface must make the next action obvious, keep large datasets scannable, expose validation at the point of decision, and avoid visual noise that competes with payroll, accounting, and compliance data.
+
+## Appearance Experience
+
+Light mode is the default Sprint 1 baseline. Dark mode is supported for comfort, accessibility, and prolonged desktop work; it is not decorative and must not reduce information density or financial precision.
+
+Dark mode must preserve the same product qualities as light mode:
+
+- Clarity: text, controls, focus, and data hierarchy remain immediately readable.
+- Deference: surfaces stay quiet so payroll, accounting, SUNAT, and report data remain dominant.
+- Consistency: the same semantic color roles and interaction states apply across themes.
+- Low visual noise: depth uses subtle surface layering and borders, not heavy shadows, gradients, or decorative effects.
 
 ## Source Alignment
 
