@@ -19,7 +19,7 @@ The repository is specification-first. `src/` contains the five Clean Architectu
 
 - C# with .NET 10; ASP.NET Core 10; WinForms targets `net10.0-windows`.
 - Visual Studio Community 2026 (18.6).
-- PostgreSQL 16, JWT, Clean Architecture and CQRS.
+- PostgreSQL 16, JWT, Clean Architecture, Modular Monolith, CQRS simple, and SOLID.
 - Solution projects: `ERP.Domain`, `ERP.Application`, `ERP.Infrastructure`, `ERP.API`, `ERP.WinForms`.
 - In-scope modules: Authentication, Payroll, Accounting SUNAT, General Ledger, Reports, Administration.
 
@@ -33,6 +33,7 @@ The repository is specification-first. `src/` contains the five Clean Architectu
 ## Architecture Documents
 
 - `sdd-architecture.md`: complete SDD architecture index.
+- `implementation-principles-and-patterns.md`: canonical implementation principles, approved pattern governance, forbidden anti-patterns, and AI implementation rules.
 - `domain-model.md`: bounded contexts, aggregates, value objects, services, events, and rules.
 - `database-design.md`: logical schema, constraints, indexes, transactions, and security design.
 - `api-contracts.md`: consolidated API contract map.
@@ -45,6 +46,6 @@ The specifications reference the PDFs by document and page range when a requirem
 
 ## Canonical Source of Truth
 
-Current implementation guidance comes from `requirements.md`, `p0-decisions.md`, `domain-model.md`, `database-design.md`, canonical module specifications/OpenAPI, executable database contracts, UX governance, and traceability/acceptance specifications.
+Current implementation guidance comes from `requirements.md`, `p0-decisions.md`, `implementation-principles-and-patterns.md`, `domain-model.md`, `database-design.md`, canonical module specifications/OpenAPI, executable database contracts, UX governance, and traceability/acceptance specifications.
 
 The following are historical, non-canonical reports and must not guide implementation. They have been moved to `docs/archive/` (see `docs/archive/README.md`): `gap-analysis.md`, `consistency-report.md`, `p0-remediation-report.md`, `p1-remediation-report.md`, and `net10-migration-report.md`. They preserve prior findings or migration evidence only. The former `architecture.md` was merged into `sdd-architecture.md` and removed during Sprint 0 remediation.
