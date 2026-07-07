@@ -25,7 +25,9 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
 
     public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var correlationId = Guid.NewGuid().ToString("N");
+        var correlationId = string.IsNullOrWhiteSpace(request.CorrelationId)
+            ? Guid.NewGuid().ToString("N")
+            : request.CorrelationId;
         var normalizedUsername = request.Username.Trim();
 
         var user = await _authRepository.FindUserByUsernameAsync(normalizedUsername, cancellationToken);

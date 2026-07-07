@@ -198,6 +198,43 @@ public class LoginCommandHandlerTests
         Assert.Equal(TestToken, response.Token);
     }
 
+    [Fact]
+    public async Task SuppliedCorrelationId_IsPreservedInResponseAndAudit()
+    {
+        const string suppliedCorrelationId = "supplied-corr-id";
+        var fakes = new Fakes
+        {
+            User = ActiveUser(),
+            PasswordVerified = true
+        };
+        var handler = CreateHandler(fakes);
+
+        var response = await handler.Handle(
+            new LoginCommand(TestUsername, TestPassword, suppliedCorrelationId),
+            CancellationToken.None);
+
+        Assert.Equal(suppliedCorrelationId, response.CorrelationId);
+        Assert.All(fakes.AuditEvents, e => Assert.Equal(suppliedCorrelationId, e.CorrelationId));
+        Assert.All(fakes.LoginAttempts, a => Assert.Equal(suppliedCorrelationId, a.CorrelationId));
+    }
+
+    [Fact]
+    public async Task MissingCorrelationId_GeneratesOne()
+    {
+        var fakes = new Fakes
+        {
+            User = ActiveUser(),
+            PasswordVerified = true
+        };
+        var handler = CreateHandler(fakes);
+
+        var response = await handler.Handle(
+            new LoginCommand(TestUsername, TestPassword, null),
+            CancellationToken.None);
+
+        Assert.NotEmpty(response.CorrelationId);
+    }
+
     private static LoginCommandHandler CreateHandler(Fakes fakes) =>
         new(fakes, fakes, fakes, fakes);
 
