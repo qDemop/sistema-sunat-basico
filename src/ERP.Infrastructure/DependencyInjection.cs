@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.AddSingleton<IDbConnectionFactory, NpgsqlDbConnectionFactory>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         return services;
     }
 }
