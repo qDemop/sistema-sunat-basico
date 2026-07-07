@@ -1,6 +1,9 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using ERP.API.Endpoints;
 using ERP.Application;
+using ERP.Application.Abstractions;
+using ERP.Application.Security;
 using ERP.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +27,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ERP.WinForms";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -33,10 +37,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew = TimeSpan.FromMinutes(1),
+            NameClaimType = JwtRegisteredClaimNames.Name,
+            RoleClaimType = "role"
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (string.IsNullOrWhiteSpace(jti))
+                {
+                    context.Fail("Token session identifier is missing.");
+                    return;
+                }
+
+                var revocationRepository = context.HttpContext.RequestServices
+                    .GetRequiredService<ITokenRevocationRepository>();
+
+                if (await revocationRepository.IsTokenRevokedAsync(jti, context.HttpContext.RequestAborted))
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            }
         };
     });
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var role in RoleModuleMapping.GetKnownRoles())
+    {
+        options.AddPolicy(role, policy => policy.RequireRole(role));
+    }
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

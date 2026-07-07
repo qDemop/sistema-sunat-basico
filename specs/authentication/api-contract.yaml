@@ -29,6 +29,24 @@ paths:
               schema: { $ref: '../shared-api-components.yaml#/components/schemas/ErrorResponse' }
         '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
         '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
+  /api/auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Return the authenticated user's session and visible modules.
+      x-roles: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '../shared-api-components.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Current user session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CurrentUserResponse' }
+        '401': { $ref: '../shared-api-components.yaml#/components/responses/Unauthorized' }
+        '400': { $ref: '../shared-api-components.yaml#/components/responses/BadRequest' }
+        '403': { $ref: '../shared-api-components.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../shared-api-components.yaml#/components/responses/Conflict' }
   /api/auth/logout:
     post:
       operationId: logout
@@ -76,6 +94,16 @@ components:
         id: { type: integer, format: int64 }
         nombre: { type: string }
         rol: { type: string, enum: [Administrador RRHH, Contador, Gerente Financiero, Administrador Sistema] }
+    CurrentUserResponse:
+      type: object
+      required: [user, modules, correlationId]
+      properties:
+        user: { $ref: '#/components/schemas/UserSession' }
+        modules:
+          type: array
+          items: { type: string, enum: [Authentication, Payroll, AccountingSUNAT, GeneralLedger, Reports, Administration] }
+          description: Modules visible to the authenticated user based on role.
+        correlationId: { type: string }
     LogoutResponse:
       type: object
       required: [revoked, expiresAt, correlationId]

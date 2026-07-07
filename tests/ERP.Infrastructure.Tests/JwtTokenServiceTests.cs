@@ -62,6 +62,37 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
+    public void GenerateToken_WithExplicitClaimMapping_PreservesSessionClaimsAndRoleAuthorization()
+    {
+        var service = CreateService(TestOptions);
+        var (token, _) = service.GenerateToken(42, "Jane Doe", "Contador", "test-jti");
+
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = TestOptions.Issuer,
+            ValidAudience = TestOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(TestOptions.Key)),
+            NameClaimType = JwtRegisteredClaimNames.Name,
+            RoleClaimType = "role"
+        };
+
+        var handler = new JwtSecurityTokenHandler { MapInboundClaims = false };
+        var principal = handler.ValidateToken(token, validationParameters, out _);
+
+        Assert.Equal("42", principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+        Assert.Equal("Jane Doe", principal.FindFirst(JwtRegisteredClaimNames.Name)?.Value);
+        Assert.Equal("test-jti", principal.FindFirst(JwtRegisteredClaimNames.Jti)?.Value);
+        Assert.Equal("Contador", principal.FindFirst("role")?.Value);
+        Assert.Equal("Jane Doe", principal.Identity?.Name);
+        Assert.True(principal.IsInRole("Contador"));
+    }
+
+    [Fact]
     public void GenerateToken_ContainsUserIdAndNameAndRole()
     {
         var service = CreateService(TestOptions);
