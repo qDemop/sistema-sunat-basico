@@ -8,5 +8,6 @@ public interface IAuthenticationRepository
 {
     Task<UserAuthenticationData?> FindUserByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken = default);
     Task RecordLoginAttemptAsync(LoginAttemptRecord record, CancellationToken cancellationToken = default);
-    Task UpdateAuthenticationStateAsync(long userId, bool success, CancellationToken cancellationToken = default);
+    Task<AuthStateUpdateResult> RecordFailedLoginAsync(long userId, CancellationToken cancellationToken = default);
+    Task RecordSuccessfulLoginAsync(long userId, CancellationToken cancellationToken = default);
 }

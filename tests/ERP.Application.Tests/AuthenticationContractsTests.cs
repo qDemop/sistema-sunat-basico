@@ -152,7 +152,8 @@ public class AuthenticationContractsTests
         {
             typeof(UserAuthenticationData),
             typeof(LoginAttemptRecord),
-            typeof(AuditEventRecord)
+            typeof(AuditEventRecord),
+            typeof(AuthStateUpdateResult)
         };
 
         foreach (var recordType in records)

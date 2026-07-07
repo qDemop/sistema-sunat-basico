@@ -51,31 +51,48 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
         await connection.ExecuteAsync(new CommandDefinition(sql, record, cancellationToken: cancellationToken));
     }
 
-    public async Task UpdateAuthenticationStateAsync(
+    public async Task<AuthStateUpdateResult> RecordFailedLoginAsync(
         long userId,
-        bool success,
         CancellationToken cancellationToken = default)
     {
-        var sql = success
-            ? """
-                UPDATE "identity".usuario
-                SET intentos_fallidos = 0,
-                    bloqueado_hasta = NULL,
-                    ultimo_acceso = now()
-                WHERE id_usuario = @UserId;
-                """
-            : """
-                UPDATE "identity".usuario
-                SET intentos_fallidos = intentos_fallidos + 1,
-                    bloqueado_hasta = CASE
-                        WHEN intentos_fallidos + 1 >= 3 THEN now() + interval '15 minutes'
-                        ELSE bloqueado_hasta
-                    END
-                WHERE id_usuario = @UserId;
-                """;
+        const string sql = """
+            UPDATE "identity".usuario
+            SET intentos_fallidos = intentos_fallidos + 1,
+                bloqueado_hasta = CASE
+                    WHEN intentos_fallidos + 1 >= 3 THEN now() + interval '15 minutes'
+                    ELSE bloqueado_hasta
+                END
+            WHERE id_usuario = @UserId
+            RETURNING intentos_fallidos AS IntentosFallidos,
+                      bloqueado_hasta AS BloqueadoHasta;
+            """;
+
+        using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+        var row = await connection.QuerySingleAsync<AuthStateRow>(
+            new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken));
+
+        return new AuthStateUpdateResult(
+            row.IntentosFallidos,
+            row.BloqueadoHasta,
+            LockoutTriggered: row.IntentosFallidos >= 3);
+    }
+
+    public async Task RecordSuccessfulLoginAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            UPDATE "identity".usuario
+            SET intentos_fallidos = 0,
+                bloqueado_hasta = NULL,
+                ultimo_acceso = now()
+            WHERE id_usuario = @UserId;
+            """;
 
         using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken));
     }
+
+    private sealed record AuthStateRow(int IntentosFallidos, DateTime? BloqueadoHasta);
 }
