@@ -15,6 +15,9 @@ public static class DependencyInjection
         services.AddSingleton<IDbConnectionFactory, NpgsqlDbConnectionFactory>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
+        services.AddScoped<ITokenRevocationRepository, TokenRevocationRepository>();
+        services.AddScoped<IAuditWriter, AuditWriter>();
         return services;
     }
 }
