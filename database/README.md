@@ -17,5 +17,8 @@ Files:
 - `functions.sql`: helper and calculation functions.
 - `procedures.sql`: stored procedure implementations.
 - `seeds.sql`: base catalog seed data.
+- `dev-seeds.example.sql`: optional local-development-only example seed for a manual Authentication smoke-test user. It is unsafe for production and is not part of automatic bootstrap.
 
 Execution order for a new database: `schema.sql`, `indexes.sql`, `functions.sql`, `procedures.sql`, `seeds.sql`, then `security.sql`. Re-execution of `seeds.sql` preserves existing versioned configuration rows.
+
+`dev-seeds.example.sql` is intentionally excluded from the execution order. Run it manually only against a disposable local development database when following `docs/auth-manual-smoke-test.md`.
