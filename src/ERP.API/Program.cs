@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using ERP.API.Endpoints;
+using ERP.API.Middleware;
 using ERP.Application;
 using ERP.Application.Abstractions;
 using ERP.Application.Security;
@@ -76,6 +77,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 app.UseSerilogRequestLogging();
 

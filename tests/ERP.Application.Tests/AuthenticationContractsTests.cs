@@ -9,6 +9,7 @@ namespace ERP.Application.Tests;
 
 public class AuthenticationContractsTests
 {
+#pragma warning disable CS0618
     [Fact]
     public void UserAuthenticationData_HasAllProperties()
     {
@@ -48,6 +49,7 @@ public class AuthenticationContractsTests
 
         Assert.Null(data.BloqueadoHasta);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void LoginAttemptRecord_HasAllProperties()
@@ -144,6 +146,7 @@ public class AuthenticationContractsTests
         }
     }
 
+#pragma warning disable CS0618
     [Fact]
     public void AllAuthenticationRecords_ExistInApplicationAssembly()
     {
@@ -162,4 +165,5 @@ public class AuthenticationContractsTests
             Assert.True(found, $"Record {recordType.Name} not found in Application assembly");
         }
     }
+#pragma warning restore CS0618
 }

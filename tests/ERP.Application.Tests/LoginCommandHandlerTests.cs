@@ -1,6 +1,7 @@
 using ERP.Application.Abstractions;
 using ERP.Application.Features.Authentication;
 using ERP.Application.Security;
+using ERP.Domain.Authentication;
 using Xunit;
 
 namespace ERP.Application.Tests;
@@ -17,6 +18,7 @@ public class LoginCommandHandlerTests
     private const string TestRol = "Administrador Sistema";
     private const string TestUnknownUsername = "doesnotexist";
 
+#pragma warning disable CS0618
     private static UserAuthenticationData ActiveUser() => new(
         Id: TestUserId,
         Username: TestUsername,
@@ -176,6 +178,25 @@ public class LoginCommandHandlerTests
     }
 
     [Fact]
+    public async Task ThirdFailedAttempt_ThrowsWithAccountLockedUntil()
+    {
+        var expectedLockout = DateTime.UtcNow.AddMinutes(15);
+        var fakes = new Fakes
+        {
+            User = ActiveUser() with { IntentosFallidos = 2 },
+            PasswordVerified = false,
+            FailedResult = new AuthStateUpdateResult(3, expectedLockout, LockoutTriggered: true)
+        };
+        var handler = CreateHandler(fakes);
+
+        var ex = await Assert.ThrowsAsync<AuthenticationException>(() =>
+            handler.Handle(new LoginCommand(TestUsername, TestPassword), CancellationToken.None));
+
+        Assert.NotNull(ex.AccountLockedUntil);
+        Assert.Equal(expectedLockout, ex.AccountLockedUntil.Value);
+    }
+
+    [Fact]
     public async Task ExpiredBlock_TreatsAsNotBlocked_AndVerifiesPassword()
     {
         var fakes = new Fakes
@@ -261,6 +282,23 @@ public class LoginCommandHandlerTests
             return Task.FromResult(User)!;
         }
 
+        public Task<Usuario?> GetByUsernameWithRoleAsync(string normalizedUsername, CancellationToken cancellationToken = default)
+        {
+            if (User is null || normalizedUsername != User.Username)
+                return Task.FromResult<Usuario?>(null);
+
+            var rol = Rol.Load(0, User.Rol, string.Empty, 0);
+            return Task.FromResult<Usuario?>(Usuario.Load(
+                User.Id,
+                User.Username,
+                User.PasswordHash,
+                User.NombreCompleto,
+                rol,
+                User.Activo,
+                User.IntentosFallidos,
+                User.BloqueadoHasta));
+        }
+
         public Task RecordLoginAttemptAsync(LoginAttemptRecord record, CancellationToken cancellationToken = default)
         {
             LoginAttempts.Add(record);
@@ -299,4 +337,5 @@ public class LoginCommandHandlerTests
             return Task.CompletedTask;
         }
     }
+#pragma warning restore CS0618
 }

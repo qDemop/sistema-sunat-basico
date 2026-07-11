@@ -69,7 +69,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
                 datos: new Dictionary<string, object> { ["bloqueadoHasta"] = user.BloqueadoHasta.Value },
                 cancellationToken: cancellationToken);
 
-            throw new AuthenticationException("Invalid credentials.");
+            throw new AuthenticationException("Account is locked.", user.BloqueadoHasta.Value);
         }
 
         if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
@@ -98,6 +98,11 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
                 correlationId: correlationId,
                 datos: failureData,
                 cancellationToken: cancellationToken);
+
+            if (stateResult.LockoutTriggered && stateResult.BloqueadoHasta is not null)
+            {
+                throw new AuthenticationException("Account is locked.", stateResult.BloqueadoHasta.Value);
+            }
 
             throw new AuthenticationException("Invalid credentials.");
         }
