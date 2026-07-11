@@ -44,11 +44,10 @@ public sealed class InMemoryAuthApiFixture : IDisposable
         _factory.Dispose();
     }
 
-#pragma warning disable CS0618
     public sealed class TestAuthenticationRepository : IAuthenticationRepository
     {
         private readonly IPasswordHasher _passwordHasher;
-        private readonly Dictionary<string, UserAuthenticationData> _users = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, ERP.Domain.Authentication.Usuario> _users = new(StringComparer.OrdinalIgnoreCase);
 
         public TestAuthenticationRepository(IPasswordHasher passwordHasher)
         {
@@ -58,26 +57,21 @@ public sealed class InMemoryAuthApiFixture : IDisposable
         public void AddUser(string username, string password, string nombreCompleto, string rol)
         {
             var hash = _passwordHasher.HashPassword(password);
-            _users[username] = new UserAuthenticationData(
-                Id: _users.Count + 1,
-                Username: username,
-                PasswordHash: hash,
-                NombreCompleto: nombreCompleto,
-                Rol: rol,
-                Activo: true,
-                IntentosFallidos: 0,
-                BloqueadoHasta: null);
-        }
-
-        public Task<UserAuthenticationData?> FindUserByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken = default)
-        {
-            _users.TryGetValue(normalizedUsername, out var user);
-            return Task.FromResult(user);
+            _users[username] = ERP.Domain.Authentication.Usuario.Load(
+                _users.Count + 1,
+                username,
+                hash,
+                nombreCompleto,
+                ERP.Domain.Authentication.Rol.Load(1, rol, string.Empty, 0),
+                activo: true,
+                intentosFallidos: 0,
+                bloqueadoHasta: null);
         }
 
         public Task<ERP.Domain.Authentication.Usuario?> GetByUsernameWithRoleAsync(string normalizedUsername, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            _users.TryGetValue(normalizedUsername, out var user);
+            return Task.FromResult(user);
         }
 
         public Task RecordLoginAttemptAsync(LoginAttemptRecord record, CancellationToken cancellationToken = default)
@@ -93,11 +87,15 @@ public sealed class InMemoryAuthApiFixture : IDisposable
             var intentos = user.IntentosFallidos + 1;
             DateTime? bloqueadoHasta = intentos >= 3 ? DateTime.UtcNow.AddMinutes(15) : null;
 
-            _users[username] = user with
-            {
-                IntentosFallidos = intentos,
-                BloqueadoHasta = bloqueadoHasta
-            };
+            _users[username] = ERP.Domain.Authentication.Usuario.Load(
+                user.Id,
+                user.Username,
+                user.PasswordHash,
+                user.NombreCompleto,
+                user.Rol,
+                user.Activo,
+                intentos,
+                bloqueadoHasta);
 
             return Task.FromResult(new AuthStateUpdateResult(
                 intentos,
@@ -109,13 +107,20 @@ public sealed class InMemoryAuthApiFixture : IDisposable
         {
             var username = _users.Values.Single(u => u.Id == userId).Username;
             var user = _users[username];
-            _users[username] = user with { IntentosFallidos = 0, BloqueadoHasta = null };
+            _users[username] = ERP.Domain.Authentication.Usuario.Load(
+                user.Id,
+                user.Username,
+                user.PasswordHash,
+                user.NombreCompleto,
+                user.Rol,
+                user.Activo,
+                0,
+                null);
             return Task.CompletedTask;
         }
 
         public List<LoginAttemptRecord> LoginAttempts { get; } = new();
     }
-#pragma warning restore CS0618
 
     public sealed class TestJwtTokenService : IJwtTokenService
     {

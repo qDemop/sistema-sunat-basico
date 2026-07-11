@@ -1,5 +1,7 @@
 using ERP.Application;
 using ERP.Infrastructure;
+using ERP.WinForms.Forms;
+using ERP.WinForms.Services;
 using ERP.WinForms.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,11 +25,17 @@ internal static class Program
                     client.BaseAddress = new Uri(
                         context.Configuration["Api:BaseUrl"] ?? "http://localhost:5000");
                 });
+
                 services.AddSingleton<ThemeManager>();
-                services.AddSingleton<MainForm>();
+                services.AddSingleton<ICorrelationContext, CorrelationContext>();
+                services.AddSingleton<IApiAuthClient, ApiAuthClient>();
+                services.AddSingleton<ISessionContext, SessionContext>();
+                services.AddSingleton<IShellFormFactory, ServiceProviderFormFactory>();
+                services.AddTransient<LoginForm>();
+                services.AddTransient<MainForm>();
             })
             .Build();
 
-        System.Windows.Forms.Application.Run(host.Services.GetRequiredService<MainForm>());
+        System.Windows.Forms.Application.Run(new AppShell(host.Services));
     }
 }

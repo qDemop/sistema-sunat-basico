@@ -9,48 +9,6 @@ namespace ERP.Application.Tests;
 
 public class AuthenticationContractsTests
 {
-#pragma warning disable CS0618
-    [Fact]
-    public void UserAuthenticationData_HasAllProperties()
-    {
-        var now = DateTime.UtcNow;
-        var data = new UserAuthenticationData(
-            Id: 1,
-            Username: "admin",
-            PasswordHash: "$2a$11$...",
-            NombreCompleto: "Admin User",
-            Rol: "Administrador Sistema",
-            Activo: true,
-            IntentosFallidos: 0,
-            BloqueadoHasta: now);
-
-        Assert.Equal(1, data.Id);
-        Assert.Equal("admin", data.Username);
-        Assert.Equal("$2a$11$...", data.PasswordHash);
-        Assert.Equal("Admin User", data.NombreCompleto);
-        Assert.Equal("Administrador Sistema", data.Rol);
-        Assert.True(data.Activo);
-        Assert.Equal(0, data.IntentosFallidos);
-        Assert.Equal(now, data.BloqueadoHasta);
-    }
-
-    [Fact]
-    public void UserAuthenticationData_AllowsNullBloqueadoHasta()
-    {
-        var data = new UserAuthenticationData(
-            Id: 1,
-            Username: "admin",
-            PasswordHash: "hash",
-            NombreCompleto: "Admin",
-            Rol: "Administrador Sistema",
-            Activo: true,
-            IntentosFallidos: 0,
-            BloqueadoHasta: null);
-
-        Assert.Null(data.BloqueadoHasta);
-    }
-#pragma warning restore CS0618
-
     [Fact]
     public void LoginAttemptRecord_HasAllProperties()
     {
@@ -146,14 +104,12 @@ public class AuthenticationContractsTests
         }
     }
 
-#pragma warning disable CS0618
     [Fact]
     public void AllAuthenticationRecords_ExistInApplicationAssembly()
     {
         var assembly = typeof(IJwtTokenService).Assembly;
         var records = new[]
         {
-            typeof(UserAuthenticationData),
             typeof(LoginAttemptRecord),
             typeof(AuditEventRecord),
             typeof(AuthStateUpdateResult)
@@ -165,5 +121,4 @@ public class AuthenticationContractsTests
             Assert.True(found, $"Record {recordType.Name} not found in Application assembly");
         }
     }
-#pragma warning restore CS0618
 }

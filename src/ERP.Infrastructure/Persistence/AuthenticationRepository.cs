@@ -14,24 +14,6 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<UserAuthenticationData?> FindUserByUsernameAsync(
-        string normalizedUsername,
-        CancellationToken cancellationToken = default)
-    {
-#pragma warning disable CS0618
-        var usuario = await GetByUsernameWithRoleAsync(normalizedUsername, cancellationToken);
-        return usuario is null ? null : new UserAuthenticationData(
-            usuario.Id,
-            usuario.Username,
-            usuario.PasswordHash,
-            usuario.NombreCompleto,
-            usuario.Rol.Nombre,
-            usuario.Activo,
-            usuario.IntentosFallidos,
-            usuario.BloqueadoHasta);
-#pragma warning restore CS0618
-    }
-
     public async Task<Usuario?> GetByUsernameWithRoleAsync(
         string normalizedUsername,
         CancellationToken cancellationToken = default)
