@@ -1,6 +1,8 @@
 using ERP.Application.Abstractions;
+using ERP.Application.Features.Payroll.Abstractions;
 using ERP.Infrastructure.Configuration;
 using ERP.Infrastructure.Persistence;
+using ERP.Infrastructure.Persistence.Payroll;
 using ERP.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
         services.AddScoped<ITokenRevocationRepository, TokenRevocationRepository>();
         services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddScoped<IPayrollCatalogRepository, PayrollRepository>();
         return services;
     }
 }

@@ -97,5 +97,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .AllowAnonymous();
 
 app.MapAuthEndpoints();
+app.MapPayrollEndpoints();
 
 app.Run();
