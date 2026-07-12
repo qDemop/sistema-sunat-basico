@@ -4,7 +4,7 @@ public sealed record PayrollOperationContext(string Periodo, long ActorUserId, s
 
 public sealed record OvertimeOperationContext(long HorasExtraId, long ActorUserId, string CorrelationId);
 
-public enum PayrollOperationError { ValidationOrConfiguration, InvalidPeriod, NoActiveEmployees, MissingPensionConfiguration, NotFound, StateConflict }
+public enum PayrollOperationError { ValidationOrConfiguration, InvalidPeriod, NoActiveEmployees, MissingPensionConfiguration, NotFound, StateConflict, Forbidden }
 
 public sealed class PayrollOperationException(PayrollOperationError error) : Exception
 {
