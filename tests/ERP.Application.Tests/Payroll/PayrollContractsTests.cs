@@ -40,5 +40,7 @@ public class PayrollContractsTests
         public Task ApproveOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) { ApproveOvertimeContext = context; return Task.CompletedTask; }
         public Task CancelOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) { CancelOvertimeContext = context; return Task.CompletedTask; }
         public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult<PayrollPeriodSnapshot?>(null);
+        public Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PayrollPeriodSnapshot>>([]);
+        public Task<PayrollDashboardSnapshot> GetDashboardAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult(new PayrollDashboardSnapshot(periodo, 0, 0, 0, "SinCalcular", 0, 0, 0));
     }
 }

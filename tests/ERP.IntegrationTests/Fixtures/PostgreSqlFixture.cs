@@ -106,6 +106,9 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         var sql = await File.ReadAllTextAsync("database/schema.sql");
         await using var connection = await CreateConnectionAsync();
         await connection.ExecuteAsync(sql);
+        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/functions.sql"));
+        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/procedures.sql"));
+        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/indexes.sql"));
     }
 
     private async Task ApplySeedsAsync()

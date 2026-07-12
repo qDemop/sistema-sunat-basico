@@ -63,6 +63,18 @@ public static class PayrollEndpoints
             if (!long.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var actorUserId)) return Unauthorized(context);
             return await ExecuteOvertimeAsync(() => mediator.Send(new CancelHorasExtraCommand(id, actorUserId, Correlation(context)), cancellationToken), id, mediator, context, cancellationToken);
         });
+
+        payroll.MapPost("/planilla/calcular", async ([FromBody] PayrollCalculationRequest input, ClaimsPrincipal user, IMediator mediator, HttpContext context, CancellationToken ct) =>
+        {
+            if (!long.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var actorUserId)) return Unauthorized(context);
+            return await ExecutePayrollAsync(() => mediator.Send(new CalculatePayrollCommand(input.Periodo, actorUserId, Correlation(context)), ct), context);
+        });
+        payroll.MapGet("/planilla", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
+            (await mediator.Send(new GetPayrollByPeriodQuery(periodo), ct)) is { } item ? Results.Ok(ToResponse(item, Correlation(context))) : NotFound(context));
+        payroll.MapGet("/planilla/periodos", async (string? estado, IMediator mediator, HttpContext context, CancellationToken ct) =>
+            Results.Ok((await mediator.Send(new ListPayrollPeriodsQuery(estado), ct)).Select(item => ToResponse(item, Correlation(context)))));
+        payroll.MapGet("/planilla/dashboard", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
+            Results.Ok(ToResponse(await mediator.Send(new GetPayrollDashboardQuery(periodo), ct), Correlation(context))));
     }
 
     private static async Task<IResult> ExecuteAsync<T>(Func<Task<T>> action, HttpContext context, int successStatus)
@@ -98,15 +110,25 @@ public static class PayrollEndpoints
     { if (result.Status == CatalogCommandStatus.NotFound) return NotFound(context); if (result.Status == CatalogCommandStatus.Conflict) return Conflict(context); return await mediator.Send(new GetHorasExtraQuery(id), ct) is { } item ? Results.Ok(ToResponse(item)) : NotFound(context); }
     private static async Task<IResult> ExecuteOvertimeAsync(Func<Task<CatalogCommandResult>> action, long id, IMediator mediator, HttpContext context, CancellationToken ct)
     { try { return await OvertimeResultAsync(await action(), id, mediator, context, ct); } catch (PostgresException ex) when (IsConflict(ex)) { return Conflict(context); } catch (PostgresException) { return BadRequest(context); } }
+    private static async Task<IResult> ExecutePayrollAsync(Func<Task<PayrollPeriodSnapshot>> action, HttpContext context)
+    {
+        try { return Results.Ok(ToResponse(await action(), Correlation(context))); }
+        catch (PayrollOperationException ex) when (ex.Error == PayrollOperationError.NotFound) { return NotFound(context); }
+        catch (PayrollOperationException ex) when (ex.Error == PayrollOperationError.StateConflict) { return Conflict(context); }
+        catch (PayrollOperationException ex) { return PayrollValidationError(context, ex.Error); }
+    }
     private static bool IsConflict(PostgresException ex) => ex.SqlState is "23505" or "40001" or "40P01" or "P0001";
     private static IResult Page<TSnapshot, TResponse>(IReadOnlyList<TSnapshot> items, int? page, int? pageSize, string? sortBy, string? sortDirection, Func<TSnapshot, TResponse> map, HttpContext context)
     { var currentPage = page.GetValueOrDefault(1); var size = pageSize.GetValueOrDefault(25); if (currentPage < 1 || size is < 1 or > 100) return BadRequest(context); var ordered = items.Select(map); return Results.Ok(new { items = ordered.Skip((currentPage - 1) * size).Take(size), pageInfo = new { page = currentPage, pageSize = size, totalItems = items.Count, totalPages = (int)Math.Ceiling(items.Count / (double)size), sortBy, sortDirection } }); }
     private static DepartamentoResponse ToResponse(DepartamentoSnapshot item) => new(item.Id, item.Input.Nombre, item.Input.Descripcion, item.Activo, item.EmpleadosActivos);
     private static EmployeeResponse ToResponse(EmpleadoSnapshot item) => new(item.Id, item.Input.DepartamentoId, item.Input.TipoDescuentoId, item.Input.Dni, item.Input.Nombres, item.Input.Apellidos, item.Input.Cargo, item.Input.SalarioBase, item.Input.FechaNacimiento, item.Input.FechaIngreso, item.Input.Banco, item.Input.NumeroCuenta, item.Activo, item.Departamento, item.TipoDescuento, item.FechaCreacion);
     private static HorasExtraResponse ToResponse(HorasExtraSnapshot item) => new(item.Id, item.Input.EmpleadoId, item.Input.Periodo, item.Input.HorasPrimerasDos, item.Input.HorasPosteriores, item.Estado, item.FechaRegistro, item.FechaAprobacion, item.AprobadoPorId);
+    private static PayrollPeriodResponse ToResponse(PayrollPeriodSnapshot item, string correlationId) => new(item.Id, item.Periodo, item.Estado.ToString(), item.TotalBruto, item.TotalDescuentos, item.TotalNeto, item.TotalProvisionGratificacion, item.TotalProvisionCts, item.CostoPlanilla, item.FechaCalculo, item.FechaFinalizacion, item.FinalizadoPorId, item.AsientoDraftId, item.Resultados, correlationId);
+    private static PayrollDashboardResponse ToResponse(PayrollDashboardSnapshot item, string correlationId) => new(item.Periodo, item.EmpleadosActivos, item.EmpleadosElegibles, item.DatosIncompletos, item.PeriodoEstado, item.TotalBruto, item.TotalNeto, item.CostoPlanilla, correlationId);
 
     private static IResult ValidationProblem(FluentValidation.Results.ValidationResult validation, HttpContext context) => Results.BadRequest(new ErrorResponse(400, "PAYROLL_VALIDATION_ERROR", "Invalid request.", Correlation(context), validation.Errors.Select(x => new ValidationError(x.PropertyName, "Validation", x.ErrorMessage)).ToList()));
     private static IResult BadRequest(HttpContext context) => Results.BadRequest(new ErrorResponse(400, "PAYROLL_VALIDATION_ERROR", "Invalid payroll request.", Correlation(context)));
+    private static IResult PayrollValidationError(HttpContext context, PayrollOperationError error) => Results.BadRequest(new ErrorResponse(400, error switch { PayrollOperationError.InvalidPeriod => "PAYROLL_INVALID_PERIOD", PayrollOperationError.NoActiveEmployees => "PAYROLL_NO_ACTIVE_EMPLOYEES", PayrollOperationError.MissingPensionConfiguration => "PAYROLL_MISSING_PENSION_CONFIGURATION", _ => "PAYROLL_VALIDATION_ERROR" }, "Invalid payroll calculation configuration.", Correlation(context)));
     private static IResult Conflict(HttpContext context) => Results.Conflict(new ErrorResponse(409, "PAYROLL_STATE_CONFLICT", "The requested payroll operation conflicts with current state.", Correlation(context)));
     private static IResult NotFound(HttpContext context) => Results.NotFound(new ErrorResponse(404, "PAYROLL_NOT_FOUND", "The requested payroll resource was not found.", Correlation(context)));
     private static IResult Unauthorized(HttpContext context) => Results.Unauthorized();
@@ -114,4 +136,7 @@ public static class PayrollEndpoints
 }
 public sealed record DepartamentoResponse(long Id, string Nombre, string? Descripcion, bool Activo, int EmpleadosActivos);
 public sealed record EmployeeResponse(long Id, long DepartamentoId, long TipoDescuentoId, string Dni, string Nombres, string Apellidos, string Cargo, decimal SalarioBase, DateOnly FechaNacimiento, DateOnly FechaIngreso, string Banco, string NumeroCuenta, bool Activo, string Departamento, string TipoDescuento, DateTimeOffset FechaCreacion);
+public sealed record PayrollCalculationRequest(string Periodo);
+public sealed record PayrollPeriodResponse(long Id, string Periodo, string Estado, decimal TotalBruto, decimal TotalDescuentos, decimal TotalNeto, decimal TotalProvisionGratificacion, decimal TotalProvisionCts, decimal CostoPlanilla, DateTimeOffset FechaCalculo, DateTimeOffset? FechaFinalizacion, long? FinalizadoPorId, long? AsientoDraftId, IReadOnlyList<PayrollEmployeeResultSnapshot> Resultados, string CorrelationId);
+public sealed record PayrollDashboardResponse(string Periodo, int EmpleadosActivos, int EmpleadosElegibles, int DatosIncompletos, string PeriodoEstado, decimal TotalBruto, decimal TotalNeto, decimal CostoPlanilla, string CorrelationId);
 public sealed record HorasExtraResponse(long Id, long EmpleadoId, string Periodo, decimal HorasPrimerasDos, decimal HorasPosteriores, string Estado, DateTimeOffset FechaRegistro, DateTimeOffset? FechaAprobacion, long? AprobadoPorId);

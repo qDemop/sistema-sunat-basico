@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenRevocationRepository, TokenRevocationRepository>();
         services.AddScoped<IAuditWriter, AuditWriter>();
         services.AddScoped<IPayrollCatalogRepository, PayrollRepository>();
+        services.AddScoped<IPayrollRepository, PayrollRepository>();
         return services;
     }
 }
