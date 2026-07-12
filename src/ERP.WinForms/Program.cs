@@ -29,10 +29,13 @@ internal static class Program
                 services.AddSingleton<ThemeManager>();
                 services.AddSingleton<ICorrelationContext, CorrelationContext>();
                 services.AddSingleton<IApiAuthClient, ApiAuthClient>();
+                services.AddSingleton<IApiPayrollClient, ApiPayrollClient>();
                 services.AddSingleton<ISessionContext, SessionContext>();
                 services.AddSingleton<IShellFormFactory, ServiceProviderFormFactory>();
                 services.AddTransient<LoginForm>();
                 services.AddTransient<MainForm>();
+                services.AddTransient<PayrollWorkspaceForm>();
+                services.AddTransient<Func<PayrollWorkspaceForm>>(provider => () => provider.GetRequiredService<PayrollWorkspaceForm>());
             })
             .Build();
 

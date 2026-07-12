@@ -1,5 +1,7 @@
 using ERP.WinForms.Services;
 using ERP.WinForms.Theming;
+using ERP.WinForms.Forms;
+using ERP.WinForms.Presenters;
 
 namespace ERP.WinForms;
 
@@ -8,6 +10,7 @@ public class MainForm : Form
     private readonly ISessionContext _sessionContext;
     private readonly ICorrelationContext _correlationContext;
     private readonly ThemeManager _themeManager;
+    private readonly Func<PayrollWorkspaceForm>? _payrollWorkspaceFactory;
     private readonly Button _themeToggleButton;
     private readonly Button _logoutButton;
     private readonly Label _titleLabel;
@@ -21,11 +24,13 @@ public class MainForm : Form
     public MainForm(
         ISessionContext sessionContext,
         ICorrelationContext correlationContext,
-        ThemeManager themeManager)
+        ThemeManager themeManager,
+        Func<PayrollWorkspaceForm>? payrollWorkspaceFactory = null)
     {
         _sessionContext = sessionContext;
         _correlationContext = correlationContext;
         _themeManager = themeManager;
+        _payrollWorkspaceFactory = payrollWorkspaceFactory;
 
         Text = "ERP - Sistema SUNAT Basico";
         StartPosition = FormStartPosition.CenterScreen;
@@ -219,6 +224,11 @@ public class MainForm : Form
             if (module == "Authentication")
             {
                 button.Enabled = false;
+            }
+            else if (module == "Payroll")
+            {
+                button.Enabled = PayrollNavigationPolicy.CanOpen(_sessionContext.User?.Rol) && _payrollWorkspaceFactory is not null;
+                button.Click += (_, _) => { using var workspace = _payrollWorkspaceFactory?.Invoke(); workspace?.ShowDialog(this); };
             }
 
             _modulesPanel.Controls.Add(button);

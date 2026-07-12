@@ -87,6 +87,14 @@ public static class PayrollEndpoints
             Results.Ok((await mediator.Send(new ListPayrollPeriodsQuery(estado), ct)).Select(item => ToResponse(item, Correlation(context)))));
         payroll.MapGet("/planilla/dashboard", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
             Results.Ok(ToResponse(await mediator.Send(new GetPayrollDashboardQuery(periodo), ct), Correlation(context))));
+        payroll.MapGet("/planilla/{periodo}/export/excel", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
+            await mediator.Send(new GetPayrollByPeriodQuery(periodo), ct) is { } item
+                ? Results.File(PayrollExportDocuments.Excel(item), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"planilla-{periodo}.xlsx")
+                : NotFound(context));
+        payroll.MapGet("/planilla/{periodo}/export/pdf", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
+            await mediator.Send(new GetPayrollByPeriodQuery(periodo), ct) is { } item
+                ? Results.File(PayrollExportDocuments.Payslips(item), "application/zip", $"boletas-{periodo}.zip")
+                : NotFound(context));
     }
 
     private static async Task<IResult> ExecuteAsync<T>(Func<Task<T>> action, HttpContext context, int successStatus)

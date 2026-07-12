@@ -4,6 +4,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
+using System.IO.Compression;
+using System.Xml.Linq;
 using ERP.Application.Abstractions;
 using ERP.API.Endpoints;
 using ERP.Application.Features.Payroll.Abstractions;
@@ -132,8 +134,50 @@ public sealed class PayrollCalculationApiTests : IDisposable
         Assert.Equal("payroll.forbidden", audit.Datos["code"]);
     }
 
+    [Fact]
+    public async Task Export_endpoints_render_only_the_persisted_payroll_projection()
+    {
+        var client = _fixture.CreateAuthorizedClient();
+
+        var excel = await client.GetAsync("/api/planilla/2026-07/export/excel");
+        var pdf = await client.GetAsync("/api/planilla/2026-07/export/pdf");
+
+        Assert.Equal(HttpStatusCode.OK, excel.StatusCode);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excel.Content.Headers.ContentType!.MediaType);
+        var workbook = await excel.Content.ReadAsByteArrayAsync();
+        using var xlsx = new ZipArchive(new MemoryStream(workbook), ZipArchiveMode.Read);
+        var sheet = XDocument.Load(xlsx.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        Assert.Contains(sheet.Descendants().Select(x => x.Value), value => value == "1800.00");
+        Assert.Contains("t=\"n\"", Encoding.UTF8.GetString(await ReadEntryAsync(xlsx, "xl/worksheets/sheet1.xml")));
+        Assert.Equal(HttpStatusCode.OK, pdf.StatusCode);
+        Assert.Equal("application/zip", pdf.Content.Headers.ContentType!.MediaType);
+        using var payslips = new ZipArchive(new MemoryStream(await pdf.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
+        var entry = Assert.Single(payslips.Entries);
+        var document = Encoding.ASCII.GetString(await ReadEntryAsync(payslips, entry.FullName));
+        var startXref = int.Parse(document[(document.LastIndexOf("startxref", StringComparison.Ordinal) + 10)..].Trim().Split('\n')[0]);
+        Assert.Equal("xref", document.Substring(startXref, 4));
+        Assert.Contains("Neto S/ 1800.00", document);
+    }
+
+    [Fact]
+    public async Task Export_endpoints_return_not_found_for_a_missing_persisted_period()
+    {
+        _fixture.Repository.ReturnMissingPeriod = true;
+
+        var response = await _fixture.CreateAuthorizedClient().GetAsync("/api/planilla/2026-08/export/excel");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private sealed class PayrollPeriodResponse { public string Estado { get; set; } = string.Empty; public decimal TotalNeto { get; set; } public long? AsientoDraftId { get; set; } }
     private sealed class PayrollError { public string Code { get; set; } = string.Empty; }
+    private static async Task<byte[]> ReadEntryAsync(ZipArchive archive, string name)
+    {
+        await using var stream = archive.GetEntry(name)!.Open();
+        using var copy = new MemoryStream();
+        await stream.CopyToAsync(copy);
+        return copy.ToArray();
+    }
 }
 
 public sealed class PayrollCalculationApiFixture : IDisposable
@@ -189,6 +233,7 @@ public sealed class PayrollCalculationApiFixture : IDisposable
         public PayrollOperationContext? Cancellation { get; private set; }
         public bool ThrowConfigurationError { get; set; }
         public bool ThrowOnGetByPeriod { get; set; }
+        public bool ReturnMissingPeriod { get; set; }
         public Exception? Error { get; set; }
         public Task CalculateAsync(PayrollOperationContext context, CancellationToken cancellationToken = default)
         {
@@ -203,12 +248,13 @@ public sealed class PayrollCalculationApiFixture : IDisposable
         public Task CancelOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default)
         {
+            if (ReturnMissingPeriod) return Task.FromResult<PayrollPeriodSnapshot?>(null);
             if (ThrowOnGetByPeriod) throw new InvalidOperationException("Projection read failed.");
             var finalized = Finalization?.Periodo == periodo;
             var cancelled = Cancellation?.Periodo == periodo;
             return Task.FromResult<PayrollPeriodSnapshot?>(Snapshot(periodo, finalized ? PeriodoPlanillaEstado.Finalized : cancelled ? PeriodoPlanillaEstado.Cancelled : PeriodoPlanillaEstado.Draft, finalized ? 99 : null));
         }
-        private static PayrollPeriodSnapshot Snapshot(string periodo, PeriodoPlanillaEstado state, long? asientoDraftId) => new(1, periodo, state, 2000m, 200m, 1800m, 333.33m, 194.44m) { AsientoDraftId = asientoDraftId };
+        private static PayrollPeriodSnapshot Snapshot(string periodo, PeriodoPlanillaEstado state, long? asientoDraftId) => new(1, periodo, state, 2000m, 200m, 1800m, 333.33m, 194.44m) { AsientoDraftId = asientoDraftId, Resultados = [new PayrollEmployeeResultSnapshot(1, "Ana Perez", 1, "RRHH", 2000m, 0m, 2000m, "AFP", 1, 10m, 200m, 0m, 0m, 200m, 1800m, 333.33m, 194.44m, 2527.77m)] };
         public Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PayrollPeriodSnapshot>>([]);
         public Task<PayrollDashboardSnapshot> GetDashboardAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult(new PayrollDashboardSnapshot(periodo, 1, 1, 0, "Draft", 2000m, 1800m, 2527.77m));
     }
