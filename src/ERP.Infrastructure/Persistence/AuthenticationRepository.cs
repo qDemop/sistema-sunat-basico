@@ -27,10 +27,10 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
                 u.activo AS Activo,
                 u.intentos_fallidos AS IntentosFallidos,
                 u.bloqueado_hasta AS BloqueadoHasta,
-                r.id_rol AS Id,
-                r.nombre AS Nombre,
-                r.descripcion AS Descripcion,
-                r.nivel_acceso AS NivelAcceso
+                r.id_rol AS RolId,
+                r.nombre AS RolNombre,
+                r.descripcion AS RolDescripcion,
+                r.nivel_acceso AS RolNivelAcceso
             FROM "identity".usuario u
             JOIN "identity".rol r ON r.id_rol = u.id_rol
             WHERE lower(u.username) = lower(@Username)

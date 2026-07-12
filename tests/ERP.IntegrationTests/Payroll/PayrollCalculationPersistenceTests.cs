@@ -1,12 +1,14 @@
 using Dapper;
+using System.Diagnostics;
 using ERP.Application.Features.Payroll.Contracts;
 using ERP.Infrastructure.Persistence.Payroll;
 using ERP.IntegrationTests.Fixtures;
+using Xunit.Abstractions;
 
 namespace ERP.IntegrationTests.Payroll;
 
 [Collection("PostgreSql")]
-public sealed class PayrollCalculationPersistenceTests(PostgreSqlFixture fixture)
+public sealed class PayrollCalculationPersistenceTests(PostgreSqlFixture fixture, ITestOutputHelper output)
 {
     [SkippableFact]
     public async Task Canonical_calculation_persists_net_invariant_and_effective_pension_version()
@@ -87,5 +89,50 @@ public sealed class PayrollCalculationPersistenceTests(PostgreSqlFixture fixture
         var recoveredCancellation = await repository.CancelAsync(new PayrollOperationContext("2026-09", actorId, "cancel-repeat"));
         Assert.Equal(cancelled.Id, recoveredCancellation.Id);
         Assert.Equal(ERP.Domain.Payroll.PeriodoPlanillaEstado.Cancelled, recoveredCancellation.Estado);
+    }
+
+    [SkippableFact]
+    public async Task PAY_NFR_001_calculates_100_employees_within_30_seconds()
+    {
+        fixture.SkipIfNotAvailable();
+        await using var connection = await fixture.CreateConnectionAsync();
+        await connection.ExecuteAsync("""
+            DELETE FROM payroll.empleado WHERE dni BETWEEN '99000000' AND '99000099';
+            DELETE FROM payroll.departamento WHERE nombre = 'PAY-NFR-001 Performance';
+            DELETE FROM "identity".usuario WHERE username = 'paynfractor';
+            UPDATE payroll.empleado SET activo = FALSE WHERE dni NOT BETWEEN '99000000' AND '99000099';
+            """);
+
+        var actorId = await connection.ExecuteScalarAsync<long>("""
+            INSERT INTO "identity".usuario(username, password_hash, nombre_completo, id_rol, activo)
+            SELECT 'paynfractor', 'hash', 'Performance Actor', id_rol, TRUE
+            FROM "identity".rol
+            WHERE nombre = 'Administrador RRHH'
+            RETURNING id_usuario;
+            """);
+        var departmentId = await connection.ExecuteScalarAsync<long>("INSERT INTO payroll.departamento(nombre, activo) VALUES ('PAY-NFR-001 Performance', TRUE) RETURNING id_departamento;");
+        var typeId = await connection.ExecuteScalarAsync<long>("SELECT id_tipo FROM payroll.tipo_descuento WHERE nombre = 'AFP';");
+        await connection.ExecuteAsync("""
+            INSERT INTO payroll.empleado(
+                id_departamento, id_tipo_descuento, dni, nombres, apellidos, cargo,
+                salario_base, fecha_nacimiento, fecha_ingreso, banco, numero_cuenta, activo)
+            SELECT @DepartmentId, @TypeId, lpad((99000000 + value)::text, 8, '0'),
+                   'Performance', 'Employee', 'Analista', 2400, DATE '1990-01-01',
+                   DATE '2020-01-01', 'Banco', lpad((12345678901234 + value)::text, 14, '0'), TRUE
+            FROM generate_series(0, 99) AS value;
+            """, new { DepartmentId = departmentId, TypeId = typeId });
+        Assert.Equal(100, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM payroll.empleado WHERE dni BETWEEN '99000000' AND '99000099';"));
+
+        var repository = new PayrollRepository(fixture.CreateConnectionFactory());
+        var stopwatch = Stopwatch.StartNew();
+        await repository.CalculateAsync(new PayrollOperationContext("2026-12", actorId, "pay-nfr-001"));
+        stopwatch.Stop();
+
+        var persisted = await repository.GetByPeriodAsync("2026-12");
+        Assert.NotNull(persisted);
+        Assert.Equal(100, persisted.Resultados.Count);
+        output.WriteLine($"PAY-NFR-001 operation=sp_calcular_planilla employees=100 duration={stopwatch.Elapsed.TotalMilliseconds:F0}ms");
+        Assert.True(stopwatch.Elapsed <= TimeSpan.FromSeconds(30),
+            $"PAY-NFR-001 operation sp_calcular_planilla for 100 employees took {stopwatch.Elapsed.TotalSeconds:F3}s; limit is 30s.");
     }
 }

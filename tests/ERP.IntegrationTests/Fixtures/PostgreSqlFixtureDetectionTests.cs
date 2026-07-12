@@ -7,6 +7,14 @@ namespace ERP.IntegrationTests.Fixtures;
 public class PostgreSqlFixtureDetectionTests
 {
     [Fact]
+    public void Bootstrap_scripts_include_security_sql_in_canonical_order()
+    {
+        Assert.Equal(
+            ["schema.sql", "indexes.sql", "functions.sql", "procedures.sql", "seeds.sql", "security.sql"],
+            PostgreSqlFixture.BootstrapScriptFiles);
+    }
+
+    [Fact]
     public void IsDockerUnavailableException_DockerApiException_returns_true()
     {
         var ex = new DockerApiException(HttpStatusCode.BadRequest, "Docker is not available");

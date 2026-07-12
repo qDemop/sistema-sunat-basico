@@ -69,12 +69,17 @@ public sealed class AuthTestFixture : IAsyncLifetime
 
     public async Task<(string Token, string CorrelationId)> LoginAsAdminAsync()
     {
-        var response = await LoginAsync("admin_it", "Admin123!");
+        var response = await LoginAsync("adminit", "Admin123!");
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<LoginResponseBody>();
         Assert.NotNull(body);
         Assert.False(string.IsNullOrWhiteSpace(body.Token));
         return (body.Token, body.CorrelationId);
+    }
+
+    public async Task ResetTestUserAsync()
+    {
+        await SeedTestUserAsync();
     }
 
     public HttpClient CreateAuthenticatedClient(string token)
@@ -88,11 +93,20 @@ public sealed class AuthTestFixture : IAsyncLifetime
     {
         await using var connection = await _pgFixture.CreateConnectionAsync();
         var hash = _passwordHasher.HashPassword("Admin123!");
+        var roleId = await connection.ExecuteScalarAsync<long>("""
+            SELECT id_rol
+            FROM "identity".rol
+            WHERE nombre = 'Administrador Sistema';
+            """);
         await connection.ExecuteAsync("""
             INSERT INTO "identity".usuario (id_usuario, username, password_hash, nombre_completo, id_rol, activo)
-            VALUES (900, 'admin_it', @Hash, 'Integration Admin', 4, TRUE)
-            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
-            """, new { Hash = hash });
+            VALUES (900, 'adminit', @Hash, 'Integration Admin', @RoleId, TRUE)
+            ON CONFLICT (username) DO UPDATE SET
+                password_hash = EXCLUDED.password_hash,
+                intentos_fallidos = 0,
+                bloqueado_hasta = NULL,
+                activo = TRUE;
+            """, new { Hash = hash, RoleId = roleId });
     }
 
     private sealed class LoginResponseBody

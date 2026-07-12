@@ -11,6 +11,10 @@ namespace ERP.IntegrationTests.Fixtures;
 
 public sealed class PostgreSqlFixture : IAsyncLifetime
 {
+    // Testcontainers connects as the database owner. Comprehensive least-privilege verification is Sprint 4 scope.
+    internal static readonly IReadOnlyList<string> BootstrapScriptFiles =
+        ["schema.sql", "indexes.sql", "functions.sql", "procedures.sql", "seeds.sql", "security.sql"];
+
     private PostgreSqlContainer? _container;
 
     public bool IsAvailable { get; private set; }
@@ -33,8 +37,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             ConnectionString = _container.GetConnectionString();
             IsAvailable = true;
 
-            await ApplySchemaAsync();
-            await ApplySeedsAsync();
+            await ApplyBootstrapAsync();
         }
         catch (Exception ex) when (IsDockerUnavailableException(ex))
         {
@@ -101,14 +104,13 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         }
     }
 
-    private async Task ApplySchemaAsync()
+    private async Task ApplyBootstrapAsync()
     {
-        var sql = await File.ReadAllTextAsync("database/schema.sql");
         await using var connection = await CreateConnectionAsync();
-        await connection.ExecuteAsync(sql);
-        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/functions.sql"));
-        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/procedures.sql"));
-        await connection.ExecuteAsync(await File.ReadAllTextAsync("database/indexes.sql"));
+        foreach (var script in BootstrapScriptFiles)
+        {
+            await connection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine("database", script)));
+        }
     }
 
     private async Task ApplySeedsAsync()

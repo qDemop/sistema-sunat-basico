@@ -12,7 +12,7 @@ public sealed class PayrollRepository(IDbConnectionFactory connectionFactory) : 
     {
         const string sql = """
             INSERT INTO payroll.departamento (nombre, descripcion) VALUES (@Nombre, @Descripcion)
-            RETURNING id_departamento AS Id, nombre AS Nombre, descripcion AS Descripcion, activo AS Activo;
+            RETURNING id_departamento AS Id, nombre AS Nombre, descripcion AS Descripcion, activo AS Activo, 0 AS EmpleadosActivos;
             """;
         using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
         var row = await connection.QuerySingleAsync<DepartmentRow>(new CommandDefinition(sql, input, cancellationToken: cancellationToken));
@@ -243,7 +243,7 @@ public sealed class PayrollRepository(IDbConnectionFactory connectionFactory) : 
     private sealed record OvertimeRow(long Id, string Estado, DateTimeOffset FechaRegistro);
     private sealed record EmployeeReadRow(long Id, long DepartamentoId, long TipoDescuentoId, string Dni, string Nombres, string Apellidos, string Cargo, decimal SalarioBase, DateOnly FechaNacimiento, DateOnly FechaIngreso, string Banco, string NumeroCuenta, bool Activo, string Departamento, string TipoDescuento, DateTimeOffset FechaCreacion);
     private sealed record OvertimeReadRow(long Id, long EmpleadoId, string Periodo, decimal HorasPrimerasDos, decimal HorasPosteriores, string Estado, DateTimeOffset FechaRegistro, DateTimeOffset? FechaAprobacion, long? AprobadoPorId);
-    private sealed record PayrollPeriodRow(long Id, string Periodo, string Estado, decimal TotalBruto, decimal TotalDescuentos, decimal TotalNeto, decimal TotalProvisionGratificacion, decimal TotalProvisionCts, DateTimeOffset FechaCalculo, DateTimeOffset? FechaFinalizacion, long? FinalizadoPorId, long? AsientoDraftId);
+    private sealed record PayrollPeriodRow(long Id, string Periodo, string Estado, decimal TotalBruto, decimal TotalDescuentos, decimal TotalNeto, decimal TotalProvisionGratificacion, decimal TotalProvisionCts, DateTime FechaCalculo, DateTime? FechaFinalizacion, long? FinalizadoPorId, long? AsientoDraftId);
     private sealed record PayrollResultRow(long EmpleadoId, string Nombre, long DepartamentoId, string Departamento, decimal SalarioBase, decimal HorasExtraMonto, decimal TotalBruto, string TipoDescuento, long ConfigDescuentoVersionId, decimal ConfigDescuentoPorcentaje, decimal Afp, decimal Onp, decimal DescuentosAdicionales, decimal TotalDescuentos, decimal TotalNeto, decimal ProvisionGratificacion, decimal ProvisionCts, decimal CostoTotal);
     private sealed record PayrollDashboardRow(int EmpleadosActivos, int EmpleadosElegibles, int DatosIncompletos, string PeriodoEstado, decimal TotalBruto, decimal TotalNeto, decimal CostoPlanilla);
 }

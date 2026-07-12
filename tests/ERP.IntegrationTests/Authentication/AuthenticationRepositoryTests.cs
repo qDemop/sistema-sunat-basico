@@ -36,10 +36,15 @@ public class AuthenticationRepositoryTests : IAsyncLifetime
     {
         _fixture.SkipIfNotAvailable();
         await using var connection = await _fixture.CreateConnectionAsync();
+        var expectedRole = await connection.QuerySingleAsync<RoleRow>("""
+            SELECT id_rol AS Id, nombre AS Nombre, nivel_acceso AS NivelAcceso
+            FROM "identity".rol
+            WHERE nombre = 'Administrador RRHH';
+            """);
         await connection.ExecuteAsync("""
             INSERT INTO "identity".usuario (id_usuario, username, password_hash, nombre_completo, id_rol, activo, intentos_fallidos)
-            VALUES (100, 'testuser', 'hash123', 'Test User', 2, TRUE, 0);
-            """);
+            VALUES (100, 'testuser', 'hash123', 'Test User', @RoleId, TRUE, 0);
+            """, new { RoleId = expectedRole.Id });
 
         var usuario = await _repository.GetByUsernameWithRoleAsync("testuser");
 
@@ -52,8 +57,9 @@ public class AuthenticationRepositoryTests : IAsyncLifetime
         Assert.Equal(0, usuario.IntentosFallidos);
         Assert.Null(usuario.BloqueadoHasta);
         Assert.NotNull(usuario.Rol);
-        Assert.Equal(2, usuario.Rol.Id);
-        Assert.Equal("Administrador RRHH", usuario.Rol.Nombre);
+        Assert.Equal(expectedRole.Id, usuario.Rol.Id);
+        Assert.Equal(expectedRole.Nombre, usuario.Rol.Nombre);
+        Assert.Equal(expectedRole.NivelAcceso, usuario.Rol.NivelAcceso);
     }
 
     [SkippableFact]
@@ -64,4 +70,6 @@ public class AuthenticationRepositoryTests : IAsyncLifetime
 
         Assert.Null(usuario);
     }
+
+    private sealed record RoleRow(long Id, string Nombre, int NivelAcceso);
 }

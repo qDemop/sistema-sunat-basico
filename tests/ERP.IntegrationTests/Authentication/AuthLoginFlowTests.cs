@@ -15,10 +15,10 @@ public class AuthLoginFlowTests : IAsyncLifetime
         _fixture = fixture;
     }
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
         _fixture.SkipIfNotAvailable();
-        return Task.CompletedTask;
+        await _fixture.ResetTestUserAsync();
     }
 
 
@@ -30,7 +30,7 @@ public class AuthLoginFlowTests : IAsyncLifetime
     [SkippableFact]
     public async Task Valid_credentials_200_token_modules()
     {
-        var response = await _fixture.LoginAsync("admin_it", "Admin123!");
+        var response = await _fixture.LoginAsync("adminit", "Admin123!");
 
         response.EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -48,15 +48,41 @@ public class AuthLoginFlowTests : IAsyncLifetime
     }
 
     [SkippableFact]
+    public async Task Invalid_credentials_return_401()
+    {
+        var response = await _fixture.LoginAsync("adminit", "incorrect-password");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(response.Headers.Contains("X-Correlation-ID"));
+    }
+
+    [SkippableFact]
+    public async Task Valid_login_allows_current_user_lookup()
+    {
+        var (token, _) = await _fixture.LoginAsAdminAsync();
+        var client = _fixture.CreateAuthenticatedClient(token);
+
+        var response = await client.GetAsync("/api/auth/me");
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<CurrentUserResponseBody>();
+        Assert.NotNull(body);
+        Assert.NotNull(body.User);
+        Assert.Equal(900, body.User.Id);
+        Assert.Equal("Integration Admin", body.User.Nombre);
+        Assert.Equal("Administrador Sistema", body.User.Rol);
+    }
+
+    [SkippableFact]
     public async Task Three_failures_lock_15_min_423()
     {
         for (var i = 0; i < 2; i++)
         {
-            var response = await _fixture.LoginAsync("admin_it", "wrong");
+            var response = await _fixture.LoginAsync("adminit", "wrong");
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
-        var lockedResponse = await _fixture.LoginAsync("admin_it", "wrong");
+        var lockedResponse = await _fixture.LoginAsync("adminit", "wrong");
 
         Assert.Equal(HttpStatusCode.Locked, lockedResponse.StatusCode);
         Assert.True(lockedResponse.Headers.Contains("X-Correlation-ID"));
@@ -104,6 +130,11 @@ public class AuthLoginFlowTests : IAsyncLifetime
         public long Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;
+    }
+
+    private sealed class CurrentUserResponseBody
+    {
+        public UserBody User { get; set; } = null!;
     }
 
     private sealed class ErrorResponseBody
