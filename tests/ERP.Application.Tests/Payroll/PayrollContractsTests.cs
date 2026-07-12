@@ -35,12 +35,13 @@ public class PayrollContractsTests
         public OvertimeOperationContext? ApproveOvertimeContext { get; private set; }
         public OvertimeOperationContext? CancelOvertimeContext { get; private set; }
         public Task CalculateAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { CalculateContext = context; return Task.CompletedTask; }
-        public Task FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { FinalizeContext = context; return Task.CompletedTask; }
-        public Task CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { CancelContext = context; return Task.CompletedTask; }
+        public Task<PayrollPeriodSnapshot> FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { FinalizeContext = context; return Task.FromResult(Snapshot(context.Periodo, ERP.Domain.Payroll.PeriodoPlanillaEstado.Finalized, 99)); }
+        public Task<PayrollPeriodSnapshot> CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { CancelContext = context; return Task.FromResult(Snapshot(context.Periodo, ERP.Domain.Payroll.PeriodoPlanillaEstado.Cancelled, null)); }
         public Task ApproveOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) { ApproveOvertimeContext = context; return Task.CompletedTask; }
         public Task CancelOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) { CancelOvertimeContext = context; return Task.CompletedTask; }
         public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult<PayrollPeriodSnapshot?>(null);
         public Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PayrollPeriodSnapshot>>([]);
         public Task<PayrollDashboardSnapshot> GetDashboardAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult(new PayrollDashboardSnapshot(periodo, 0, 0, 0, "SinCalcular", 0, 0, 0));
+        private static PayrollPeriodSnapshot Snapshot(string periodo, ERP.Domain.Payroll.PeriodoPlanillaEstado state, long? asientoDraftId) => new(1, periodo, state, 0, 0, 0, 0, 0) { AsientoDraftId = asientoDraftId };
     }
 }

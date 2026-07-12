@@ -20,8 +20,40 @@ public sealed class PayrollCalculationErrorTranslatorTests
     }
 
     [Theory]
+    [InlineData("Payroll period must exist in Draft state")]
+    [InlineData("Payroll period must be Draft")]
+    public void Terminal_lifecycle_database_failures_map_to_state_conflict(string message)
+    {
+        var result = PayrollCalculationErrorTranslator.Translate(new PostgresException(message, "ERROR", "ERROR", "P0001"));
+
+        Assert.NotNull(result);
+        Assert.Equal(PayrollOperationError.StateConflict, result.Error);
+    }
+
+    [Theory]
+    [InlineData("An Open accounting period 2026-07 is required")]
+    [InlineData("Canonical payroll mapping produced an unbalanced entry")]
+    public void Accounting_prerequisite_failures_map_to_validation_or_configuration(string message)
+    {
+        var result = PayrollCalculationErrorTranslator.Translate(new PostgresException(message, "ERROR", "ERROR", "P0001"));
+
+        Assert.NotNull(result);
+        Assert.Equal(PayrollOperationError.ValidationOrConfiguration, result.Error);
+    }
+
+    [Theory]
+    [InlineData("Actor is not authorized to finalize payroll")]
+    [InlineData("Actor is not authorized to cancel payroll")]
+    public void Canonical_procedure_authorization_failures_map_to_forbidden(string message)
+    {
+        var result = PayrollCalculationErrorTranslator.Translate(new PostgresException(message, "ERROR", "ERROR", "P0001"));
+
+        Assert.NotNull(result);
+        Assert.Equal(PayrollOperationError.Forbidden, result.Error);
+    }
+
+    [Theory]
     [InlineData("42501", "permission denied for procedure sp_calcular_planilla")]
-    [InlineData("P0001", "Actor is not authorized to calculate payroll")]
     [InlineData("XX000", "unexpected database failure")]
     public void Unknown_or_authorization_database_failures_are_not_reclassified(string sqlState, string message)
     {

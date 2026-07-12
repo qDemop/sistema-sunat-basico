@@ -61,7 +61,78 @@ public sealed class PayrollCalculationApiTests : IDisposable
         Assert.Equal(HttpStatusCode.InternalServerError, unknown.StatusCode);
     }
 
-    private sealed class PayrollPeriodResponse { public string Estado { get; set; } = string.Empty; public decimal TotalNeto { get; set; } }
+    [Fact]
+    public async Task Lifecycle_routes_are_rbac_protected_and_return_persisted_terminal_projections()
+    {
+        var unauthorized = _fixture.CreateAuthorizedClient("Contador");
+        Assert.Equal(HttpStatusCode.Forbidden, (await unauthorized.PostAsync("/api/planilla/2026-07/finalizar", null)).StatusCode);
+
+        var client = _fixture.CreateAuthorizedClient();
+        client.DefaultRequestHeaders.Add("X-Correlation-ID", "finalize-1");
+        var finalized = await client.PostAsync("/api/planilla/2026-07/finalizar", null);
+        var finalizedBody = await finalized.Content.ReadFromJsonAsync<PayrollPeriodResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, finalized.StatusCode);
+        Assert.NotNull(finalizedBody);
+        Assert.Equal("Finalized", finalizedBody.Estado);
+        Assert.Equal(99, finalizedBody.AsientoDraftId);
+        Assert.Equal(new PayrollOperationContext("2026-07", 7, "finalize-1"), _fixture.Repository.Finalization);
+
+        var cancelled = await _fixture.CreateAuthorizedClient().PostAsync("/api/planilla/2026-08/cancelar", null);
+        var cancelledBody = await cancelled.Content.ReadFromJsonAsync<PayrollPeriodResponse>();
+        Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);
+        Assert.NotNull(cancelledBody);
+        Assert.Equal("Cancelled", cancelledBody.Estado);
+        Assert.Null(cancelledBody.AsientoDraftId);
+    }
+
+    [Fact]
+    public async Task Lifecycle_failure_returns_stable_conflict_and_writes_sanitized_failure_audit()
+    {
+        _fixture.Repository.Error = new PayrollOperationException(PayrollOperationError.StateConflict);
+        var client = _fixture.CreateAuthorizedClient();
+        client.DefaultRequestHeaders.Add("X-Correlation-ID", "failure-1");
+
+        var response = await client.PostAsync("/api/planilla/2026-07/finalizar", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var audit = Assert.Single(_fixture.Audit.Events);
+        Assert.Equal(7, audit.UsuarioId);
+        Assert.Equal("Administrador RRHH", audit.RolActor);
+        Assert.Equal("FINALIZAR_PLANILLA", audit.Accion);
+        Assert.Equal("Failure", audit.Resultado);
+        Assert.Equal("failure-1", audit.CorrelationId);
+        Assert.Equal("payroll.state_conflict", audit.Datos["code"]);
+    }
+
+    [Fact]
+    public async Task Lifecycle_recovery_is_idempotent_and_a_response_read_failure_cannot_create_a_failure_audit()
+    {
+        _fixture.Repository.ThrowOnGetByPeriod = true;
+        var client = _fixture.CreateAuthorizedClient();
+
+        var first = await client.PostAsync("/api/planilla/2026-07/finalizar", null);
+        var second = await client.PostAsync("/api/planilla/2026-07/finalizar", null);
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal("Finalized", (await second.Content.ReadFromJsonAsync<PayrollPeriodResponse>())!.Estado);
+        Assert.Empty(_fixture.Audit.Events);
+    }
+
+    [Fact]
+    public async Task Canonical_authorization_failure_is_a_stable_forbidden_response_and_audited_once()
+    {
+        _fixture.Repository.Error = new PayrollOperationException(PayrollOperationError.Forbidden);
+
+        var response = await _fixture.CreateAuthorizedClient().PostAsync("/api/planilla/2026-07/cancelar", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        var audit = Assert.Single(_fixture.Audit.Events);
+        Assert.Equal("payroll.forbidden", audit.Datos["code"]);
+    }
+
+    private sealed class PayrollPeriodResponse { public string Estado { get; set; } = string.Empty; public decimal TotalNeto { get; set; } public long? AsientoDraftId { get; set; } }
     private sealed class PayrollError { public string Code { get; set; } = string.Empty; }
 }
 
@@ -71,17 +142,21 @@ public sealed class PayrollCalculationApiFixture : IDisposable
     public PayrollCalculationApiFixture()
     {
         Repository = new FakeCalculationRepository();
+        Audit = new FakeAuditWriter();
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             services.RemoveAll<IPayrollRepository>();
             services.RemoveAll<ITokenRevocationRepository>();
             services.AddSingleton<IPayrollRepository>(Repository);
+            services.RemoveAll<IAuditWriter>();
+            services.AddSingleton<IAuditWriter>(Audit);
             services.AddSingleton<ITokenRevocationRepository, TestTokenRevocationRepository>();
         }));
     }
 
     private WebApplicationFactory<Program> Factory { get; }
     public FakeCalculationRepository Repository { get; }
+    public FakeAuditWriter Audit { get; }
     public HttpClient CreateAuthorizedClient(string role = "Administrador RRHH")
     {
         var client = Factory.CreateClient();
@@ -97,10 +172,23 @@ public sealed class PayrollCalculationApiFixture : IDisposable
         public Task RevokeTokenAsync(string jti, long userId, DateTime expiraEn, string correlationId, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
+    public sealed class FakeAuditWriter : IAuditWriter
+    {
+        public List<ERP.Application.Features.Authentication.AuditEventRecord> Events { get; } = [];
+        public Task WriteAsync(ERP.Application.Features.Authentication.AuditEventRecord record, CancellationToken cancellationToken = default)
+        {
+            Events.Add(record);
+            return Task.CompletedTask;
+        }
+    }
+
     public sealed class FakeCalculationRepository : IPayrollRepository
     {
         public PayrollOperationContext? Calculation { get; private set; }
+        public PayrollOperationContext? Finalization { get; private set; }
+        public PayrollOperationContext? Cancellation { get; private set; }
         public bool ThrowConfigurationError { get; set; }
+        public bool ThrowOnGetByPeriod { get; set; }
         public Exception? Error { get; set; }
         public Task CalculateAsync(PayrollOperationContext context, CancellationToken cancellationToken = default)
         {
@@ -109,11 +197,18 @@ public sealed class PayrollCalculationApiFixture : IDisposable
             if (ThrowConfigurationError) throw new PayrollOperationException(PayrollOperationError.ValidationOrConfiguration);
             return Task.CompletedTask;
         }
-        public Task FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<PayrollPeriodSnapshot> FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { Finalization = context; if (Error is not null) throw Error; return Task.FromResult(Snapshot(context.Periodo, PeriodoPlanillaEstado.Finalized, 99)); }
+        public Task<PayrollPeriodSnapshot> CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { Cancellation = context; if (Error is not null) throw Error; return Task.FromResult(Snapshot(context.Periodo, PeriodoPlanillaEstado.Cancelled, null)); }
         public Task ApproveOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task CancelOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult<PayrollPeriodSnapshot?>(new PayrollPeriodSnapshot(1, periodo, PeriodoPlanillaEstado.Draft, 2000m, 200m, 1800m, 333.33m, 194.44m));
+        public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default)
+        {
+            if (ThrowOnGetByPeriod) throw new InvalidOperationException("Projection read failed.");
+            var finalized = Finalization?.Periodo == periodo;
+            var cancelled = Cancellation?.Periodo == periodo;
+            return Task.FromResult<PayrollPeriodSnapshot?>(Snapshot(periodo, finalized ? PeriodoPlanillaEstado.Finalized : cancelled ? PeriodoPlanillaEstado.Cancelled : PeriodoPlanillaEstado.Draft, finalized ? 99 : null));
+        }
+        private static PayrollPeriodSnapshot Snapshot(string periodo, PeriodoPlanillaEstado state, long? asientoDraftId) => new(1, periodo, state, 2000m, 200m, 1800m, 333.33m, 194.44m) { AsientoDraftId = asientoDraftId };
         public Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PayrollPeriodSnapshot>>([]);
         public Task<PayrollDashboardSnapshot> GetDashboardAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult(new PayrollDashboardSnapshot(periodo, 1, 1, 0, "Draft", 2000m, 1800m, 2527.77m));
     }

@@ -35,15 +35,66 @@ public sealed class PayrollCalculationHandlersTests
         Assert.Equal(2500m, result.CostoPlanilla);
     }
 
+    [Fact]
+    public async Task Finalize_invokes_canonical_operation_then_returns_finalized_projection_with_draft_entry()
+    {
+        var repository = new CalculationRepository();
+        var handler = new FinalizePayrollCommandHandler(repository);
+
+        var result = await handler.Handle(new FinalizePayrollCommand("2026-07", 7, "finalize-1"), CancellationToken.None);
+
+        Assert.Equal(new PayrollOperationContext("2026-07", 7, "finalize-1"), repository.Finalization);
+        Assert.Equal(PeriodoPlanillaEstado.Finalized, result.Estado);
+        Assert.Equal(99, result.AsientoDraftId);
+    }
+
+    [Fact]
+    public async Task Cancel_invokes_canonical_operation_then_returns_terminal_cancelled_projection()
+    {
+        var repository = new CalculationRepository();
+        var handler = new CancelPayrollCommandHandler(repository);
+
+        var result = await handler.Handle(new CancelPayrollCommand("2026-07", 7, "cancel-1"), CancellationToken.None);
+
+        Assert.Equal(new PayrollOperationContext("2026-07", 7, "cancel-1"), repository.Cancellation);
+        Assert.Equal(PeriodoPlanillaEstado.Cancelled, result.Estado);
+        Assert.Null(result.AsientoDraftId);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Lifecycle_handlers_return_the_repositorys_atomic_post_state_without_a_fallible_follow_up_read(bool finalize)
+    {
+        var repository = new CalculationRepository { ThrowOnLifecycleFollowUpRead = true };
+
+        var result = finalize
+            ? await new FinalizePayrollCommandHandler(repository).Handle(new FinalizePayrollCommand("2026-07", 7, "recover-finalize"), CancellationToken.None)
+            : await new CancelPayrollCommandHandler(repository).Handle(new CancelPayrollCommand("2026-07", 7, "recover-cancel"), CancellationToken.None);
+
+        Assert.Equal(finalize ? PeriodoPlanillaEstado.Finalized : PeriodoPlanillaEstado.Cancelled, result.Estado);
+        Assert.Equal(finalize ? 99 : null, result.AsientoDraftId);
+    }
+
     private sealed class CalculationRepository : IPayrollRepository
     {
         public PayrollOperationContext? Calculation { get; private set; }
+        public PayrollOperationContext? Finalization { get; private set; }
+        public PayrollOperationContext? Cancellation { get; private set; }
+        public bool ThrowOnLifecycleFollowUpRead { get; init; }
         public Task CalculateAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { Calculation = context; return Task.CompletedTask; }
-        public Task FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<PayrollPeriodSnapshot> FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { Finalization = context; return Task.FromResult(Snapshot() with { Estado = PeriodoPlanillaEstado.Finalized, AsientoDraftId = 99 }); }
+        public Task<PayrollPeriodSnapshot> CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) { Cancellation = context; return Task.FromResult(Snapshot() with { Estado = PeriodoPlanillaEstado.Cancelled }); }
         public Task ApproveOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task CancelOvertimeAsync(OvertimeOperationContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult<PayrollPeriodSnapshot?>(Snapshot());
+        public Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default)
+        {
+            if (ThrowOnLifecycleFollowUpRead && (Finalization is not null || Cancellation is not null)) throw new InvalidOperationException("Follow-up read failed.");
+            var snapshot = Snapshot();
+            if (Finalization is not null) snapshot = snapshot with { Estado = PeriodoPlanillaEstado.Finalized, AsientoDraftId = 99 };
+            if (Cancellation is not null) snapshot = snapshot with { Estado = PeriodoPlanillaEstado.Cancelled };
+            return Task.FromResult<PayrollPeriodSnapshot?>(snapshot);
+        }
         public Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PayrollPeriodSnapshot>>([Snapshot()]);
         public Task<PayrollDashboardSnapshot> GetDashboardAsync(string periodo, CancellationToken cancellationToken = default) => Task.FromResult(new PayrollDashboardSnapshot(periodo, 1, 1, 0, "Draft", 2000m, 1800m, 2500m));
 

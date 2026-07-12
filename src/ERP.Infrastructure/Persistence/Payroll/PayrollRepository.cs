@@ -155,17 +155,13 @@ public sealed class PayrollRepository(IDbConnectionFactory connectionFactory) : 
 
     public async Task<PayrollPeriodSnapshot?> GetByPeriodAsync(string periodo, CancellationToken cancellationToken = default)
     {
-        const string periodSql = "SELECT id_periodo_planilla AS Id, periodo AS Periodo, estado AS Estado, total_bruto AS TotalBruto, total_descuentos AS TotalDescuentos, total_neto AS TotalNeto, total_provision_gratificacion AS TotalProvisionGratificacion, total_provision_cts AS TotalProvisionCts, fecha_calculo AS FechaCalculo, fecha_finalizacion AS FechaFinalizacion, id_usuario_finalizador AS FinalizadoPorId FROM payroll.periodo_planilla WHERE periodo=@Periodo";
         using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
-        var row = await connection.QuerySingleOrDefaultAsync<PayrollPeriodRow>(new CommandDefinition(periodSql, new { Periodo = periodo }, cancellationToken: cancellationToken));
-        if (row is null) return null;
-        var results = await connection.QueryAsync<PayrollResultRow>(new CommandDefinition(PayrollResultsSql, new { PeriodId = row.Id }, cancellationToken: cancellationToken));
-        return PeriodSnapshot(row, results);
+        return await ReadPayrollSnapshotAsync(connection, null, periodo, cancellationToken);
     }
 
     public async Task<IReadOnlyList<PayrollPeriodSnapshot>> ListPeriodsAsync(string? estado, CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT id_periodo_planilla AS Id, periodo AS Periodo, estado AS Estado, total_bruto AS TotalBruto, total_descuentos AS TotalDescuentos, total_neto AS TotalNeto, total_provision_gratificacion AS TotalProvisionGratificacion, total_provision_cts AS TotalProvisionCts, fecha_calculo AS FechaCalculo, fecha_finalizacion AS FechaFinalizacion, id_usuario_finalizador AS FinalizadoPorId FROM payroll.periodo_planilla WHERE (@Estado IS NULL OR estado=@Estado) ORDER BY periodo DESC";
+        const string sql = "SELECT pp.id_periodo_planilla AS Id, pp.periodo AS Periodo, pp.estado AS Estado, pp.total_bruto AS TotalBruto, pp.total_descuentos AS TotalDescuentos, pp.total_neto AS TotalNeto, pp.total_provision_gratificacion AS TotalProvisionGratificacion, pp.total_provision_cts AS TotalProvisionCts, pp.fecha_calculo AS FechaCalculo, pp.fecha_finalizacion AS FechaFinalizacion, pp.id_usuario_finalizador AS FinalizadoPorId, ac.id_asiento_contable AS AsientoDraftId FROM payroll.periodo_planilla pp LEFT JOIN accounting.asiento_contable ac ON ac.origen='Planilla' AND ac.id_origen=pp.id_periodo_planilla WHERE (@Estado IS NULL OR pp.estado=@Estado) ORDER BY pp.periodo DESC";
         using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<PayrollPeriodRow>(new CommandDefinition(sql, new { Estado = string.IsNullOrWhiteSpace(estado) ? null : estado }, cancellationToken: cancellationToken));
         return rows.Select(row => PeriodSnapshot(row, [])).ToArray();
@@ -179,13 +175,63 @@ public sealed class PayrollRepository(IDbConnectionFactory connectionFactory) : 
         return new PayrollDashboardSnapshot(periodo, row.EmpleadosActivos, row.EmpleadosElegibles, row.DatosIncompletos, row.PeriodoEstado, row.TotalBruto, row.TotalNeto, row.CostoPlanilla);
     }
 
-    public Task FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => ExecutePayrollProcedureAsync("CALL payroll.sp_finalizar_planilla(@Periodo, @ActorUserId, @CorrelationId);", context, cancellationToken);
-    public Task CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => ExecutePayrollProcedureAsync("CALL payroll.sp_cancelar_planilla(@Periodo, @ActorUserId, @CorrelationId);", context, cancellationToken);
+    public Task<PayrollPeriodSnapshot> FinalizeAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => ExecuteLifecycleProcedureAsync("CALL payroll.sp_finalizar_planilla(@Periodo, @ActorUserId, @CorrelationId);", context, ERP.Domain.Payroll.PeriodoPlanillaEstado.Finalized, cancellationToken);
+    public Task<PayrollPeriodSnapshot> CancelAsync(PayrollOperationContext context, CancellationToken cancellationToken = default) => ExecuteLifecycleProcedureAsync("CALL payroll.sp_cancelar_planilla(@Periodo, @ActorUserId, @CorrelationId);", context, ERP.Domain.Payroll.PeriodoPlanillaEstado.Cancelled, cancellationToken);
+
+    private async Task<PayrollPeriodSnapshot> ExecuteLifecycleProcedureAsync(string sql, PayrollOperationContext context, ERP.Domain.Payroll.PeriodoPlanillaEstado expectedState, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
+            using var transaction = connection.BeginTransaction();
+            var existing = await ReadPayrollSnapshotAsync(connection, transaction, context.Periodo, cancellationToken);
+            if (existing?.Estado == expectedState)
+            {
+                transaction.Commit();
+                return existing;
+            }
+            if (existing is not null && existing.Estado != ERP.Domain.Payroll.PeriodoPlanillaEstado.Draft)
+                throw new PayrollOperationException(PayrollOperationError.StateConflict);
+
+            await connection.ExecuteAsync(new CommandDefinition(sql, context, transaction, cancellationToken: cancellationToken));
+            var projection = await ReadPayrollSnapshotAsync(connection, transaction, context.Periodo, cancellationToken)
+                ?? throw new PayrollOperationException(PayrollOperationError.NotFound);
+            if (projection.Estado != expectedState) throw new PayrollOperationException(PayrollOperationError.StateConflict);
+            transaction.Commit();
+            return projection;
+        }
+        catch (PostgresException exception)
+        {
+            var translated = PayrollCalculationErrorTranslator.Translate(exception);
+            if (translated is not null) throw translated;
+            throw;
+        }
+    }
 
     private async Task ExecutePayrollProcedureAsync(string sql, PayrollOperationContext context, CancellationToken cancellationToken)
-    { using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken); await connection.ExecuteAsync(new CommandDefinition(sql, context, cancellationToken: cancellationToken)); }
+    {
+        try
+        {
+            using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
+            await connection.ExecuteAsync(new CommandDefinition(sql, context, cancellationToken: cancellationToken));
+        }
+        catch (PostgresException exception)
+        {
+            var translated = PayrollCalculationErrorTranslator.Translate(exception);
+            if (translated is not null) throw translated;
+            throw;
+        }
+    }
     private const string PayrollResultsSql = "SELECT p.id_empleado AS EmpleadoId, concat_ws(' ', e.nombres, e.apellidos) AS Nombre, p.id_departamento AS DepartamentoId, dep.nombre AS Departamento, p.salario_base_aplicado AS SalarioBase, d.horas_extra_total AS HorasExtraMonto, p.total_bruto AS TotalBruto, td.nombre AS TipoDescuento, d.id_config_descuento_version AS ConfigDescuentoVersionId, cdv.porcentaje AS ConfigDescuentoPorcentaje, d.afp AS Afp, d.onp AS Onp, d.descuentos_adicionales AS DescuentosAdicionales, p.total_descuentos AS TotalDescuentos, p.total_neto AS TotalNeto, d.provision_gratificacion AS ProvisionGratificacion, d.provision_cts AS ProvisionCts, p.total_bruto+d.provision_gratificacion+d.provision_cts AS CostoTotal FROM payroll.planilla p JOIN payroll.detalle_planilla d ON d.id_planilla=p.id_planilla JOIN payroll.empleado e ON e.id_empleado=p.id_empleado JOIN payroll.departamento dep ON dep.id_departamento=p.id_departamento JOIN payroll.tipo_descuento td ON td.id_tipo=e.id_tipo_descuento JOIN payroll.config_descuento_previsional_version cdv ON cdv.id_config_descuento_version=d.id_config_descuento_version WHERE p.id_periodo_planilla=@PeriodId ORDER BY p.id_empleado";
-    private static PayrollPeriodSnapshot PeriodSnapshot(PayrollPeriodRow row, IEnumerable<PayrollResultRow> results) => new(row.Id, row.Periodo, Enum.Parse<ERP.Domain.Payroll.PeriodoPlanillaEstado>(row.Estado), row.TotalBruto, row.TotalDescuentos, row.TotalNeto, row.TotalProvisionGratificacion, row.TotalProvisionCts) { FechaCalculo = row.FechaCalculo, FechaFinalizacion = row.FechaFinalizacion, FinalizadoPorId = row.FinalizadoPorId, Resultados = results.Select(x => new PayrollEmployeeResultSnapshot(x.EmpleadoId, x.Nombre, x.DepartamentoId, x.Departamento, x.SalarioBase, x.HorasExtraMonto, x.TotalBruto, x.TipoDescuento, x.ConfigDescuentoVersionId, x.ConfigDescuentoPorcentaje, x.Afp, x.Onp, x.DescuentosAdicionales, x.TotalDescuentos, x.TotalNeto, x.ProvisionGratificacion, x.ProvisionCts, x.CostoTotal)).ToArray() };
+    private const string PayrollPeriodSql = "SELECT pp.id_periodo_planilla AS Id, pp.periodo AS Periodo, pp.estado AS Estado, pp.total_bruto AS TotalBruto, pp.total_descuentos AS TotalDescuentos, pp.total_neto AS TotalNeto, pp.total_provision_gratificacion AS TotalProvisionGratificacion, pp.total_provision_cts AS TotalProvisionCts, pp.fecha_calculo AS FechaCalculo, pp.fecha_finalizacion AS FechaFinalizacion, pp.id_usuario_finalizador AS FinalizadoPorId, ac.id_asiento_contable AS AsientoDraftId FROM payroll.periodo_planilla pp LEFT JOIN accounting.asiento_contable ac ON ac.origen='Planilla' AND ac.id_origen=pp.id_periodo_planilla WHERE pp.periodo=@Periodo";
+    private static async Task<PayrollPeriodSnapshot?> ReadPayrollSnapshotAsync(System.Data.IDbConnection connection, System.Data.IDbTransaction? transaction, string periodo, CancellationToken cancellationToken)
+    {
+        var row = await connection.QuerySingleOrDefaultAsync<PayrollPeriodRow>(new CommandDefinition(PayrollPeriodSql, new { Periodo = periodo }, transaction, cancellationToken: cancellationToken));
+        if (row is null) return null;
+        var results = await connection.QueryAsync<PayrollResultRow>(new CommandDefinition(PayrollResultsSql, new { PeriodId = row.Id }, transaction, cancellationToken: cancellationToken));
+        return PeriodSnapshot(row, results);
+    }
+    private static PayrollPeriodSnapshot PeriodSnapshot(PayrollPeriodRow row, IEnumerable<PayrollResultRow> results) => new(row.Id, row.Periodo, Enum.Parse<ERP.Domain.Payroll.PeriodoPlanillaEstado>(row.Estado), row.TotalBruto, row.TotalDescuentos, row.TotalNeto, row.TotalProvisionGratificacion, row.TotalProvisionCts) { FechaCalculo = row.FechaCalculo, FechaFinalizacion = row.FechaFinalizacion, FinalizadoPorId = row.FinalizadoPorId, AsientoDraftId = row.AsientoDraftId, Resultados = results.Select(x => new PayrollEmployeeResultSnapshot(x.EmpleadoId, x.Nombre, x.DepartamentoId, x.Departamento, x.SalarioBase, x.HorasExtraMonto, x.TotalBruto, x.TipoDescuento, x.ConfigDescuentoVersionId, x.ConfigDescuentoPorcentaje, x.Afp, x.Onp, x.DescuentosAdicionales, x.TotalDescuentos, x.TotalNeto, x.ProvisionGratificacion, x.ProvisionCts, x.CostoTotal)).ToArray() };
 
     private const string EmployeeSelect = "SELECT e.id_empleado AS Id, e.id_departamento AS DepartamentoId, e.id_tipo_descuento AS TipoDescuentoId, e.dni AS Dni, e.nombres AS Nombres, e.apellidos AS Apellidos, e.cargo AS Cargo, e.salario_base AS SalarioBase, e.fecha_nacimiento AS FechaNacimiento, e.fecha_ingreso AS FechaIngreso, e.banco AS Banco, e.numero_cuenta AS NumeroCuenta, e.activo AS Activo, d.nombre AS Departamento, t.nombre AS TipoDescuento, e.fecha_creacion AS FechaCreacion FROM payroll.empleado e JOIN payroll.departamento d ON d.id_departamento=e.id_departamento JOIN payroll.tipo_descuento t ON t.id_tipo=e.id_tipo_descuento";
     private const string OvertimeSelect = "SELECT id_horas_extra AS Id, id_empleado AS EmpleadoId, periodo AS Periodo, horas_primeras_dos AS HorasPrimerasDos, horas_posteriores AS HorasPosteriores, estado AS Estado, fecha_registro AS FechaRegistro, fecha_aprobacion AS FechaAprobacion, id_usuario_aprobador AS AprobadoPorId FROM payroll.horas_extra";
@@ -197,7 +243,7 @@ public sealed class PayrollRepository(IDbConnectionFactory connectionFactory) : 
     private sealed record OvertimeRow(long Id, string Estado, DateTimeOffset FechaRegistro);
     private sealed record EmployeeReadRow(long Id, long DepartamentoId, long TipoDescuentoId, string Dni, string Nombres, string Apellidos, string Cargo, decimal SalarioBase, DateOnly FechaNacimiento, DateOnly FechaIngreso, string Banco, string NumeroCuenta, bool Activo, string Departamento, string TipoDescuento, DateTimeOffset FechaCreacion);
     private sealed record OvertimeReadRow(long Id, long EmpleadoId, string Periodo, decimal HorasPrimerasDos, decimal HorasPosteriores, string Estado, DateTimeOffset FechaRegistro, DateTimeOffset? FechaAprobacion, long? AprobadoPorId);
-    private sealed record PayrollPeriodRow(long Id, string Periodo, string Estado, decimal TotalBruto, decimal TotalDescuentos, decimal TotalNeto, decimal TotalProvisionGratificacion, decimal TotalProvisionCts, DateTimeOffset FechaCalculo, DateTimeOffset? FechaFinalizacion, long? FinalizadoPorId);
+    private sealed record PayrollPeriodRow(long Id, string Periodo, string Estado, decimal TotalBruto, decimal TotalDescuentos, decimal TotalNeto, decimal TotalProvisionGratificacion, decimal TotalProvisionCts, DateTimeOffset FechaCalculo, DateTimeOffset? FechaFinalizacion, long? FinalizadoPorId, long? AsientoDraftId);
     private sealed record PayrollResultRow(long EmpleadoId, string Nombre, long DepartamentoId, string Departamento, decimal SalarioBase, decimal HorasExtraMonto, decimal TotalBruto, string TipoDescuento, long ConfigDescuentoVersionId, decimal ConfigDescuentoPorcentaje, decimal Afp, decimal Onp, decimal DescuentosAdicionales, decimal TotalDescuentos, decimal TotalNeto, decimal ProvisionGratificacion, decimal ProvisionCts, decimal CostoTotal);
     private sealed record PayrollDashboardRow(int EmpleadosActivos, int EmpleadosElegibles, int DatosIncompletos, string PeriodoEstado, decimal TotalBruto, decimal TotalNeto, decimal CostoPlanilla);
 }

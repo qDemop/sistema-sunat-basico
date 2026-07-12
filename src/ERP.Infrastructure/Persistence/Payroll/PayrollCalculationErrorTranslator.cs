@@ -16,6 +16,11 @@ public static class PayrollCalculationErrorTranslator
             var message when message.StartsWith("No active employees exist", StringComparison.Ordinal) => new PayrollOperationException(PayrollOperationError.NoActiveEmployees),
             var message when message.StartsWith("No Active pension configuration", StringComparison.Ordinal) => new PayrollOperationException(PayrollOperationError.MissingPensionConfiguration),
             var message when message.Contains("cannot be recalculated", StringComparison.OrdinalIgnoreCase) => new PayrollOperationException(PayrollOperationError.StateConflict),
+            var message when message.Contains("must exist in Draft state", StringComparison.OrdinalIgnoreCase) => new PayrollOperationException(PayrollOperationError.StateConflict),
+            var message when message.Contains("must be Draft", StringComparison.OrdinalIgnoreCase) => new PayrollOperationException(PayrollOperationError.StateConflict),
+            var message when message.Contains("Open accounting period", StringComparison.OrdinalIgnoreCase) => new PayrollOperationException(PayrollOperationError.ValidationOrConfiguration),
+            var message when message.Contains("canonical payroll mapping", StringComparison.OrdinalIgnoreCase) => new PayrollOperationException(PayrollOperationError.ValidationOrConfiguration),
+            var message when message.StartsWith("Actor is not authorized to", StringComparison.Ordinal) => new PayrollOperationException(PayrollOperationError.Forbidden),
             _ => null
         };
     }

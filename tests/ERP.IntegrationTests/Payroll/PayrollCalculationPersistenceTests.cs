@@ -52,4 +52,40 @@ public sealed class PayrollCalculationPersistenceTests(PostgreSqlFixture fixture
         Assert.Equal(result.ConfigDescuentoVersionId, effectiveVersion);
         await Assert.ThrowsAsync<Npgsql.PostgresException>(() => connection.ExecuteAsync("INSERT INTO payroll.config_descuento_previsional_version(id_tipo,version,porcentaje,fecha_inicio,estado) VALUES(@TypeId,100,11.00,'2026-07-01','Active');", new { TypeId = typeId }));
     }
+
+    [SkippableFact]
+    public async Task Canonical_lifecycle_finalizes_once_with_balanced_draft_entry_and_cancellation_is_terminal()
+    {
+        fixture.SkipIfNotAvailable();
+        await using var connection = await fixture.CreateConnectionAsync();
+        await connection.ExecuteAsync("DELETE FROM payroll.empleado WHERE dni='12345672'; DELETE FROM payroll.departamento WHERE nombre='Lifecycle Test'; DELETE FROM \"identity\".usuario WHERE username='lifecycleactor';");
+        var actorId = await connection.ExecuteScalarAsync<long>("INSERT INTO \"identity\".usuario(username,password_hash,nombre_completo,id_rol,activo) SELECT 'lifecycleactor','hash','Lifecycle Actor',id_rol,true FROM \"identity\".rol WHERE nombre='Administrador RRHH' RETURNING id_usuario;");
+        var departmentId = await connection.ExecuteScalarAsync<long>("INSERT INTO payroll.departamento(nombre,activo) VALUES('Lifecycle Test',true) RETURNING id_departamento;");
+        var typeId = await connection.ExecuteScalarAsync<long>("SELECT id_tipo FROM payroll.tipo_descuento WHERE nombre='AFP';");
+        await connection.ExecuteAsync("INSERT INTO payroll.empleado(id_departamento,id_tipo_descuento,dni,nombres,apellidos,cargo,salario_base,fecha_nacimiento,fecha_ingreso,banco,numero_cuenta,activo) VALUES(@DepartmentId,@TypeId,'12345672','Rosa','Diaz','Analista',2400,'1990-01-01','2020-01-01','Banco','12345678901235',true);", new { DepartmentId = departmentId, TypeId = typeId });
+        await connection.ExecuteAsync("INSERT INTO accounting.periodo_contable(codigo,fecha_inicio,fecha_fin,estado) VALUES ('2026-08','2026-08-01','2026-08-31','Open'), ('2026-09','2026-09-01','2026-09-30','Open') ON CONFLICT (codigo) DO UPDATE SET estado='Open';");
+        var repository = new PayrollRepository(fixture.CreateConnectionFactory());
+
+        await repository.CalculateAsync(new PayrollOperationContext("2026-08", actorId, "lifecycle-calc"));
+        await repository.FinalizeAsync(new PayrollOperationContext("2026-08", actorId, "lifecycle-finalize"));
+        var finalized = await repository.GetByPeriodAsync("2026-08");
+
+        Assert.NotNull(finalized);
+        Assert.Equal(ERP.Domain.Payroll.PeriodoPlanillaEstado.Finalized, finalized.Estado);
+        Assert.NotNull(finalized.AsientoDraftId);
+        Assert.Equal(0m, await connection.ExecuteScalarAsync<decimal>("SELECT sum(debe) - sum(haber) FROM accounting.detalle_asiento WHERE id_asiento_contable=@Id", new { Id = finalized.AsientoDraftId }));
+        var recoveredFinalization = await repository.FinalizeAsync(new PayrollOperationContext("2026-08", actorId, "lifecycle-repeat"));
+        Assert.Equal(finalized.Id, recoveredFinalization.Id);
+        Assert.Equal(finalized.AsientoDraftId, recoveredFinalization.AsientoDraftId);
+
+        await repository.CalculateAsync(new PayrollOperationContext("2026-09", actorId, "cancel-calc"));
+        await repository.CancelAsync(new PayrollOperationContext("2026-09", actorId, "cancel"));
+        var cancelled = await repository.GetByPeriodAsync("2026-09");
+        Assert.NotNull(cancelled);
+        Assert.Equal(ERP.Domain.Payroll.PeriodoPlanillaEstado.Cancelled, cancelled.Estado);
+        Assert.Null(cancelled.AsientoDraftId);
+        var recoveredCancellation = await repository.CancelAsync(new PayrollOperationContext("2026-09", actorId, "cancel-repeat"));
+        Assert.Equal(cancelled.Id, recoveredCancellation.Id);
+        Assert.Equal(ERP.Domain.Payroll.PeriodoPlanillaEstado.Cancelled, recoveredCancellation.Estado);
+    }
 }

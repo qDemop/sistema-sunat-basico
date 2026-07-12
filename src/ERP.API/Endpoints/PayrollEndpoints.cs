@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using ERP.API.Contracts;
 using ERP.API.Middleware;
+using ERP.Application.Abstractions;
+using ERP.Application.Features.Authentication;
 using ERP.Application.Features.Payroll.Commands;
 using ERP.Application.Features.Payroll.Contracts;
 using ERP.Application.Features.Payroll.Queries;
@@ -67,7 +69,17 @@ public static class PayrollEndpoints
         payroll.MapPost("/planilla/calcular", async ([FromBody] PayrollCalculationRequest input, ClaimsPrincipal user, IMediator mediator, HttpContext context, CancellationToken ct) =>
         {
             if (!long.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var actorUserId)) return Unauthorized(context);
-            return await ExecutePayrollAsync(() => mediator.Send(new CalculatePayrollCommand(input.Periodo, actorUserId, Correlation(context)), ct), context);
+            return await ExecutePayrollAsync(() => mediator.Send(new CalculatePayrollCommand(input.Periodo, actorUserId, Correlation(context)), ct), actorUserId, Role(user), "CALCULAR_PLANILLA", input.Periodo, context, context.RequestServices.GetRequiredService<IAuditWriter>(), ct);
+        });
+        payroll.MapPost("/planilla/{periodo}/finalizar", async (string periodo, ClaimsPrincipal user, IMediator mediator, HttpContext context, CancellationToken ct) =>
+        {
+            if (!long.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var actorUserId)) return Unauthorized(context);
+            return await ExecutePayrollAsync(() => mediator.Send(new FinalizePayrollCommand(periodo, actorUserId, Correlation(context)), ct), actorUserId, Role(user), "FINALIZAR_PLANILLA", periodo, context, context.RequestServices.GetRequiredService<IAuditWriter>(), ct);
+        });
+        payroll.MapPost("/planilla/{periodo}/cancelar", async (string periodo, ClaimsPrincipal user, IMediator mediator, HttpContext context, CancellationToken ct) =>
+        {
+            if (!long.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var actorUserId)) return Unauthorized(context);
+            return await ExecutePayrollAsync(() => mediator.Send(new CancelPayrollCommand(periodo, actorUserId, Correlation(context)), ct), actorUserId, Role(user), "CANCELAR_PLANILLA", periodo, context, context.RequestServices.GetRequiredService<IAuditWriter>(), ct);
         });
         payroll.MapGet("/planilla", async (string periodo, IMediator mediator, HttpContext context, CancellationToken ct) =>
             (await mediator.Send(new GetPayrollByPeriodQuery(periodo), ct)) is { } item ? Results.Ok(ToResponse(item, Correlation(context))) : NotFound(context));
@@ -110,13 +122,46 @@ public static class PayrollEndpoints
     { if (result.Status == CatalogCommandStatus.NotFound) return NotFound(context); if (result.Status == CatalogCommandStatus.Conflict) return Conflict(context); return await mediator.Send(new GetHorasExtraQuery(id), ct) is { } item ? Results.Ok(ToResponse(item)) : NotFound(context); }
     private static async Task<IResult> ExecuteOvertimeAsync(Func<Task<CatalogCommandResult>> action, long id, IMediator mediator, HttpContext context, CancellationToken ct)
     { try { return await OvertimeResultAsync(await action(), id, mediator, context, ct); } catch (PostgresException ex) when (IsConflict(ex)) { return Conflict(context); } catch (PostgresException) { return BadRequest(context); } }
-    private static async Task<IResult> ExecutePayrollAsync(Func<Task<PayrollPeriodSnapshot>> action, HttpContext context)
+    private static async Task<IResult> ExecutePayrollAsync(Func<Task<PayrollPeriodSnapshot>> action, long actorUserId, string role, string auditAction, string periodo, HttpContext context, IAuditWriter auditWriter, CancellationToken cancellationToken)
     {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(PayrollEndpoints));
         try { return Results.Ok(ToResponse(await action(), Correlation(context))); }
-        catch (PayrollOperationException ex) when (ex.Error == PayrollOperationError.NotFound) { return NotFound(context); }
-        catch (PayrollOperationException ex) when (ex.Error == PayrollOperationError.StateConflict) { return Conflict(context); }
-        catch (PayrollOperationException ex) { return PayrollValidationError(context, ex.Error); }
+        catch (PayrollOperationException ex)
+        {
+            await WriteFailureAuditAsync(auditWriter, logger, actorUserId, role, auditAction, periodo, FailureCode(ex.Error), Correlation(context));
+            return ex.Error switch
+            {
+                PayrollOperationError.Forbidden => Results.StatusCode(StatusCodes.Status403Forbidden),
+                PayrollOperationError.NotFound => NotFound(context),
+                PayrollOperationError.StateConflict => Conflict(context),
+                _ => PayrollValidationError(context, ex.Error)
+            };
+        }
+        catch
+        {
+            await WriteFailureAuditAsync(auditWriter, logger, actorUserId, role, auditAction, periodo, "payroll.unexpected", Correlation(context));
+            throw;
+        }
     }
+    private static async Task WriteFailureAuditAsync(IAuditWriter auditWriter, ILogger logger, long actorUserId, string role, string action, string periodo, string code, string correlationId)
+    {
+        try
+        {
+            using var auditTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await auditWriter.WriteAsync(new AuditEventRecord(actorUserId, role, "Payroll", action, "PERIODO_PLANILLA", periodo, "Failure", new Dictionary<string, object> { ["code"] = code }, correlationId), auditTimeout.Token);
+        }
+        catch
+        {
+            logger.LogWarning("Payroll failure audit could not persist. Action={Action} CorrelationId={CorrelationId}", action, correlationId);
+        }
+    }
+    private static string FailureCode(PayrollOperationError error) => error switch
+    {
+        PayrollOperationError.NotFound => "payroll.not_found",
+        PayrollOperationError.Forbidden => "payroll.forbidden",
+        PayrollOperationError.StateConflict => "payroll.state_conflict",
+        _ => "payroll.validation_or_configuration"
+    };
     private static bool IsConflict(PostgresException ex) => ex.SqlState is "23505" or "40001" or "40P01" or "P0001";
     private static IResult Page<TSnapshot, TResponse>(IReadOnlyList<TSnapshot> items, int? page, int? pageSize, string? sortBy, string? sortDirection, Func<TSnapshot, TResponse> map, HttpContext context)
     { var currentPage = page.GetValueOrDefault(1); var size = pageSize.GetValueOrDefault(25); if (currentPage < 1 || size is < 1 or > 100) return BadRequest(context); var ordered = items.Select(map); return Results.Ok(new { items = ordered.Skip((currentPage - 1) * size).Take(size), pageInfo = new { page = currentPage, pageSize = size, totalItems = items.Count, totalPages = (int)Math.Ceiling(items.Count / (double)size), sortBy, sortDirection } }); }
@@ -132,6 +177,7 @@ public static class PayrollEndpoints
     private static IResult Conflict(HttpContext context) => Results.Conflict(new ErrorResponse(409, "PAYROLL_STATE_CONFLICT", "The requested payroll operation conflicts with current state.", Correlation(context)));
     private static IResult NotFound(HttpContext context) => Results.NotFound(new ErrorResponse(404, "PAYROLL_NOT_FOUND", "The requested payroll resource was not found.", Correlation(context)));
     private static IResult Unauthorized(HttpContext context) => Results.Unauthorized();
+    private static string Role(ClaimsPrincipal user) => user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value ?? "Unknown";
     private static string Correlation(HttpContext context) => context.Items.TryGetValue(CorrelationIdMiddleware.CorrelationIdItemKey, out var value) && value is string id ? id : CorrelationIdMiddleware.ResolveCorrelationId(context.Request);
 }
 public sealed record DepartamentoResponse(long Id, string Nombre, string? Descripcion, bool Activo, int EmpleadosActivos);
