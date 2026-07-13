@@ -1,6 +1,7 @@
 using ERP.Application.Abstractions;
 using ERP.Application.Features.Authentication;
 using ERP.Application.Security;
+using ERP.Domain.Authentication;
 using Xunit;
 
 namespace ERP.Application.Tests;
@@ -17,15 +18,45 @@ public class LoginCommandHandlerTests
     private const string TestRol = "Administrador Sistema";
     private const string TestUnknownUsername = "doesnotexist";
 
-    private static UserAuthenticationData ActiveUser() => new(
-        Id: TestUserId,
-        Username: TestUsername,
-        PasswordHash: TestHash,
-        NombreCompleto: TestNombre,
-        Rol: TestRol,
-        Activo: true,
-        IntentosFallidos: 0,
-        BloqueadoHasta: null);
+    private static Usuario ActiveUser() => Usuario.Load(
+        TestUserId,
+        TestUsername,
+        TestHash,
+        TestNombre,
+        Rol.Load(1, TestRol, string.Empty, 0),
+        activo: true,
+        intentosFallidos: 0,
+        bloqueadoHasta: null);
+
+    private static Usuario WithActivo(Usuario user, bool activo) => Usuario.Load(
+        user.Id,
+        user.Username,
+        user.PasswordHash,
+        user.NombreCompleto,
+        user.Rol,
+        activo,
+        user.IntentosFallidos,
+        user.BloqueadoHasta);
+
+    private static Usuario WithBloqueadoHasta(Usuario user, DateTime? bloqueadoHasta) => Usuario.Load(
+        user.Id,
+        user.Username,
+        user.PasswordHash,
+        user.NombreCompleto,
+        user.Rol,
+        user.Activo,
+        user.IntentosFallidos,
+        bloqueadoHasta);
+
+    private static Usuario WithIntentosFallidos(Usuario user, int intentos) => Usuario.Load(
+        user.Id,
+        user.Username,
+        user.PasswordHash,
+        user.NombreCompleto,
+        user.Rol,
+        user.Activo,
+        intentos,
+        user.BloqueadoHasta);
 
     [Fact]
     public async Task ValidLogin_ReturnsTokenUserRoleModulesAndCorrelationId()
@@ -103,7 +134,7 @@ public class LoginCommandHandlerTests
     {
         var fakes = new Fakes
         {
-            User = ActiveUser() with { Activo = false },
+            User = WithActivo(ActiveUser(), false),
             PasswordVerified = true
         };
         var handler = CreateHandler(fakes);
@@ -122,7 +153,7 @@ public class LoginCommandHandlerTests
     {
         var fakes = new Fakes
         {
-            User = ActiveUser() with { BloqueadoHasta = DateTime.UtcNow.AddMinutes(10) },
+            User = WithBloqueadoHasta(ActiveUser(), DateTime.UtcNow.AddMinutes(10)),
             PasswordVerified = true
         };
         var handler = CreateHandler(fakes);
@@ -161,7 +192,7 @@ public class LoginCommandHandlerTests
     {
         var fakes = new Fakes
         {
-            User = ActiveUser() with { IntentosFallidos = 2 },
+            User = WithIntentosFallidos(ActiveUser(), 2),
             PasswordVerified = false,
             FailedResult = new AuthStateUpdateResult(3, DateTime.UtcNow.AddMinutes(15), LockoutTriggered: true)
         };
@@ -176,15 +207,32 @@ public class LoginCommandHandlerTests
     }
 
     [Fact]
+    public async Task ThirdFailedAttempt_ThrowsWithAccountLockedUntil()
+    {
+        var expectedLockout = DateTime.UtcNow.AddMinutes(15);
+        var fakes = new Fakes
+        {
+            User = WithIntentosFallidos(ActiveUser(), 2),
+            PasswordVerified = false,
+            FailedResult = new AuthStateUpdateResult(3, expectedLockout, LockoutTriggered: true)
+        };
+        var handler = CreateHandler(fakes);
+
+        var ex = await Assert.ThrowsAsync<AuthenticationException>(() =>
+            handler.Handle(new LoginCommand(TestUsername, TestPassword), CancellationToken.None));
+
+        Assert.NotNull(ex.AccountLockedUntil);
+        Assert.Equal(expectedLockout, ex.AccountLockedUntil.Value);
+    }
+
+    [Fact]
     public async Task ExpiredBlock_TreatsAsNotBlocked_AndVerifiesPassword()
     {
         var fakes = new Fakes
         {
-            User = ActiveUser() with
-            {
-                IntentosFallidos = 3,
-                BloqueadoHasta = DateTime.UtcNow.AddMinutes(-5)
-            },
+            User = WithIntentosFallidos(
+                WithBloqueadoHasta(ActiveUser(), DateTime.UtcNow.AddMinutes(-5)),
+                3),
             PasswordVerified = true
         };
         var handler = CreateHandler(fakes);
@@ -244,7 +292,7 @@ public class LoginCommandHandlerTests
         IJwtTokenService,
         IAuditWriter
     {
-        public UserAuthenticationData? User { get; set; }
+        public Usuario? User { get; set; }
         public bool PasswordVerified { get; set; }
         public bool PasswordVerifyCalled { get; private set; }
         public AuthStateUpdateResult FailedResult { get; set; } = new(1, null, false);
@@ -254,11 +302,12 @@ public class LoginCommandHandlerTests
         public List<AuditEventRecord> AuditEvents { get; } = new();
         public List<(long userId, string nombre, string rol, string jti)> JwtTokens { get; } = new();
 
-        public Task<UserAuthenticationData?> FindUserByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken = default)
+        public Task<Usuario?> GetByUsernameWithRoleAsync(string normalizedUsername, CancellationToken cancellationToken = default)
         {
             if (User is null || normalizedUsername != User.Username)
-                return Task.FromResult<UserAuthenticationData?>(null);
-            return Task.FromResult(User)!;
+                return Task.FromResult<Usuario?>(null);
+
+            return Task.FromResult<Usuario?>(User);
         }
 
         public Task RecordLoginAttemptAsync(LoginAttemptRecord record, CancellationToken cancellationToken = default)

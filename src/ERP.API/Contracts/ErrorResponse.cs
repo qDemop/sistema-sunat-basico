@@ -5,6 +5,7 @@ public sealed record ErrorResponse(
     string Code,
     string Message,
     string CorrelationId,
-    IReadOnlyList<ValidationError>? ValidationErrors = null);
+    IReadOnlyList<ValidationError>? ValidationErrors = null,
+    IReadOnlyDictionary<string, object>? Data = null);
 
 public sealed record ValidationError(string Field, string Code, string Message);

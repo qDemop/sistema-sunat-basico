@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using ERP.API.Endpoints;
+using ERP.API.Middleware;
 using ERP.Application;
 using ERP.Application.Abstractions;
 using ERP.Application.Security;
@@ -77,6 +78,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
@@ -94,5 +97,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .AllowAnonymous();
 
 app.MapAuthEndpoints();
+app.MapPayrollEndpoints();
 
 app.Run();

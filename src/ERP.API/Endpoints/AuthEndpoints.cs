@@ -16,13 +16,13 @@ public static class AuthEndpoints
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPost("/api/auth/login", async (
+            HttpContext httpContext,
             [FromBody] LoginRequest request,
-            [FromHeader(Name = "X-Correlation-ID")] string? correlationHeader,
             IValidator<LoginCommand> validator,
             IMediator mediator,
             CancellationToken cancellationToken) =>
         {
-            var correlationId = ResolveCorrelationId(correlationHeader);
+            var correlationId = GetRequestCorrelationId(httpContext);
 
             var command = new LoginCommand(request.Username, request.Password, correlationId);
 
@@ -59,6 +59,17 @@ public static class AuthEndpoints
                     response.CorrelationId
                 });
             }
+            catch (AuthenticationException ex) when (ex.AccountLockedUntil is not null)
+            {
+                return Results.Json(
+                    new ErrorResponse(
+                        Status: 423,
+                        Code: "AUTH_ACCOUNT_LOCKED",
+                        Message: $"Account locked until {ex.AccountLockedUntil:O}.",
+                        CorrelationId: correlationId,
+                        Data: new Dictionary<string, object> { ["bloqueadoHasta"] = ex.AccountLockedUntil.Value }),
+                    statusCode: StatusCodes.Status423Locked);
+            }
             catch (AuthenticationException)
             {
                 return Results.Json(
@@ -73,15 +84,15 @@ public static class AuthEndpoints
         .AllowAnonymous();
 
         app.MapGet("/api/auth/me", [Authorize] async (
+            HttpContext httpContext,
             ClaimsPrincipal user,
-            [FromHeader(Name = "X-Correlation-ID")] string? correlationHeader,
             IMediator mediator,
             CancellationToken cancellationToken) =>
         {
             var userId = GetRequiredClaimLong(user, JwtRegisteredClaimNames.Sub);
             var nombre = GetRequiredClaim(user, JwtRegisteredClaimNames.Name);
             var rol = GetRequiredClaim(user, "role");
-            var correlationId = ResolveCorrelationId(correlationHeader);
+            var correlationId = GetRequestCorrelationId(httpContext);
 
             var response = await mediator.Send(
                 new GetCurrentUserQuery(userId, nombre, rol, correlationId),
@@ -101,14 +112,13 @@ public static class AuthEndpoints
         });
 
         app.MapPost("/api/auth/logout", [Authorize] async (
-            HttpRequest request,
+            HttpContext httpContext,
             ClaimsPrincipal user,
-            [FromHeader(Name = "X-Correlation-ID")] string? correlationHeader,
             IMediator mediator,
             CancellationToken cancellationToken) =>
         {
-            var correlationId = ResolveCorrelationId(correlationHeader);
-            var token = ReadBearerToken(request);
+            var correlationId = GetRequestCorrelationId(httpContext);
+            var token = ReadBearerToken(httpContext.Request);
             var jwt = ReadJwtToken(token);
             var jti = jwt.Id;
             var userId = GetRequiredClaimLong(user, JwtRegisteredClaimNames.Sub);
@@ -136,10 +146,18 @@ public static class AuthEndpoints
         });
     }
 
-    private static string ResolveCorrelationId(string? correlationHeader) =>
-        string.IsNullOrWhiteSpace(correlationHeader)
-            ? Guid.NewGuid().ToString("N")
-            : correlationHeader;
+    private static string GetRequestCorrelationId(HttpContext context)
+    {
+        if (context.Items.TryGetValue(Middleware.CorrelationIdMiddleware.CorrelationIdItemKey, out var value)
+            && value is string correlationId
+            && !string.IsNullOrWhiteSpace(correlationId))
+        {
+            return correlationId;
+        }
+
+        // Fallback for contexts where the middleware is not present (e.g., isolated endpoint tests).
+        return Middleware.CorrelationIdMiddleware.ResolveCorrelationId(context.Request);
+    }
 
     private static string GetRequiredClaim(ClaimsPrincipal user, string claimType)
     {

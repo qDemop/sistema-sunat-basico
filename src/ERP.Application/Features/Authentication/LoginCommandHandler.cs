@@ -30,7 +30,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             : request.CorrelationId;
         var normalizedUsername = request.Username.Trim();
 
-        var user = await _authRepository.FindUserByUsernameAsync(normalizedUsername, cancellationToken);
+        var user = await _authRepository.GetByUsernameWithRoleAsync(normalizedUsername, cancellationToken);
 
         if (user is null)
         {
@@ -62,14 +62,14 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
 
             await WriteAuditEvent(
                 usuarioId: user.Id,
-                rolActor: user.Rol,
+                rolActor: user.Rol.Nombre,
                 accion: "LoginBlocked",
                 resultado: "Blocked",
                 correlationId: correlationId,
                 datos: new Dictionary<string, object> { ["bloqueadoHasta"] = user.BloqueadoHasta.Value },
                 cancellationToken: cancellationToken);
 
-            throw new AuthenticationException("Invalid credentials.");
+            throw new AuthenticationException("Account is locked.", user.BloqueadoHasta.Value);
         }
 
         if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
@@ -92,12 +92,17 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
 
             await WriteAuditEvent(
                 usuarioId: user.Id,
-                rolActor: user.Rol,
+                rolActor: user.Rol.Nombre,
                 accion: "LoginFailure",
                 resultado: "Failure",
                 correlationId: correlationId,
                 datos: failureData,
                 cancellationToken: cancellationToken);
+
+            if (stateResult.LockoutTriggered && stateResult.BloqueadoHasta is not null)
+            {
+                throw new AuthenticationException("Account is locked.", stateResult.BloqueadoHasta.Value);
+            }
 
             throw new AuthenticationException("Invalid credentials.");
         }
@@ -109,12 +114,12 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             cancellationToken);
 
         var jti = Guid.NewGuid().ToString("N");
-        var (token, expiresAt) = _jwtTokenService.GenerateToken(user.Id, user.NombreCompleto, user.Rol, jti);
-        var modules = RoleModuleMapping.GetVisibleModules(user.Rol);
+        var (token, expiresAt) = _jwtTokenService.GenerateToken(user.Id, user.NombreCompleto, user.Rol.Nombre, jti);
+        var modules = RoleModuleMapping.GetVisibleModules(user.Rol.Nombre);
 
         await WriteAuditEvent(
             usuarioId: user.Id,
-            rolActor: user.Rol,
+            rolActor: user.Rol.Nombre,
             accion: "LoginSuccess",
             resultado: "Success",
             correlationId: correlationId,
@@ -124,7 +129,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
         return new LoginResponse(
             Token: token,
             ExpiresAt: expiresAt,
-            User: new UserSession(user.Id, user.NombreCompleto, user.Rol),
+            User: new UserSession(user.Id, user.NombreCompleto, user.Rol.Nombre),
             Modules: modules,
             CorrelationId: correlationId);
     }

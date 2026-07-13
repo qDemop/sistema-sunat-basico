@@ -38,6 +38,8 @@ public sealed class AuditWriter : IAuditWriter
         };
 
         using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        using var transaction = connection.BeginTransaction();
+        await connection.ExecuteAsync(new CommandDefinition(sql, parameters, transaction, cancellationToken: cancellationToken));
+        transaction.Commit();
     }
 }

@@ -1,6 +1,7 @@
 using Dapper;
 using ERP.Application.Abstractions;
 using ERP.Application.Features.Authentication;
+using ERP.Domain.Authentication;
 
 namespace ERP.Infrastructure.Persistence;
 
@@ -13,7 +14,7 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<UserAuthenticationData?> FindUserByUsernameAsync(
+    public async Task<Usuario?> GetByUsernameWithRoleAsync(
         string normalizedUsername,
         CancellationToken cancellationToken = default)
     {
@@ -23,10 +24,13 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
                 u.username AS Username,
                 u.password_hash AS PasswordHash,
                 u.nombre_completo AS NombreCompleto,
-                r.nombre AS Rol,
                 u.activo AS Activo,
                 u.intentos_fallidos AS IntentosFallidos,
-                u.bloqueado_hasta AS BloqueadoHasta
+                u.bloqueado_hasta AS BloqueadoHasta,
+                r.id_rol AS RolId,
+                r.nombre AS RolNombre,
+                r.descripcion AS RolDescripcion,
+                r.nivel_acceso AS RolNivelAcceso
             FROM "identity".usuario u
             JOIN "identity".rol r ON r.id_rol = u.id_rol
             WHERE lower(u.username) = lower(@Username)
@@ -34,8 +38,24 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
             """;
 
         using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
-        return await connection.QuerySingleOrDefaultAsync<UserAuthenticationData>(
+        var row = await connection.QuerySingleOrDefaultAsync<UserRolRow>(
             new CommandDefinition(sql, new { Username = normalizedUsername }, cancellationToken: cancellationToken));
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var rol = Rol.Load(row.RolId, row.RolNombre, row.RolDescripcion, row.RolNivelAcceso);
+        return Usuario.Load(
+            row.Id,
+            row.Username,
+            row.PasswordHash,
+            row.NombreCompleto,
+            rol,
+            row.Activo,
+            row.IntentosFallidos,
+            row.BloqueadoHasta);
     }
 
     public async Task RecordLoginAttemptAsync(LoginAttemptRecord record, CancellationToken cancellationToken = default)
@@ -95,4 +115,17 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
     }
 
     private sealed record AuthStateRow(int IntentosFallidos, DateTime? BloqueadoHasta);
+
+    private sealed record UserRolRow(
+        long Id,
+        string Username,
+        string PasswordHash,
+        string NombreCompleto,
+        bool Activo,
+        int IntentosFallidos,
+        DateTime? BloqueadoHasta,
+        long RolId,
+        string RolNombre,
+        string RolDescripcion,
+        int RolNivelAcceso);
 }

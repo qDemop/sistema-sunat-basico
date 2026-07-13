@@ -1,6 +1,8 @@
 using ERP.Application.Abstractions;
+using ERP.Application.Features.Payroll.Abstractions;
 using ERP.Infrastructure;
 using ERP.Infrastructure.Persistence;
+using ERP.Infrastructure.Persistence.Payroll;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -37,6 +39,16 @@ public class AuthenticationPersistenceRegistrationTests
         var service = provider.GetRequiredService<IAuditWriter>();
 
         Assert.IsType<AuditWriter>(service);
+    }
+
+    [Fact]
+    public void AddInfrastructure_RegistersPayrollCatalogRepository()
+    {
+        using var provider = CreateProvider();
+
+        var service = provider.GetRequiredService<IPayrollCatalogRepository>();
+
+        Assert.IsType<PayrollRepository>(service);
     }
 
     private static ServiceProvider CreateProvider()
