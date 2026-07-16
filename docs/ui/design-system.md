@@ -6,6 +6,8 @@ The ERP design system defines the shared visual and behavioral language for all 
 
 This is a UX specification. It defines semantic design decisions and interaction expectations, not implementation details or control classes.
 
+All screens consume one reusable UI Foundation: semantic tokens, layout primitives, and shared visual components. Custom window chrome, if later adopted, is a separate reusable shell concern; it must not be duplicated by Forms or coupled to business workflows.
+
 The visible language is Peruvian Spanish. Canonical screen labels come from `screen-inventory.md`; layout behavior comes from `layout-specifications.md`.
 
 ## Visual Personality
@@ -168,6 +170,19 @@ Only these values and their sums may define UX spacing. New arbitrary spacing va
 - Comfortable is available as a user preference for long-session readability.
 - Density changes preserve content, selection, scroll position, and focus.
 
+### Shape and Elevation Measurements
+
+| Element | Radius | Elevation rule |
+|---|---:|---|
+| Text-entry and selection controls | 6 px | No shadow; use border and focus ring. |
+| Buttons | 6 px | No shadow in resting state. |
+| Cards and panels | 8 px | At most one subtle elevation level: a 1 px border plus `Elevation-1`. |
+| Dialogs and transient surfaces | 10 px | May use `Elevation-1`; no higher elevation is approved. |
+
+Exceptions require an explicit UX rationale and must preserve focus, contrast, target size, and Windows affordances.
+
+`Elevation-1` is `offset-x: 0 px`, `offset-y: 2 px`, `blur: 8 px`, and `spread: 0 px`. Its shadow color is `#1B1D21` at 12% opacity in the light theme and `#000000` at 24% opacity in the dark theme. It is the only approved shadow token.
+
 ### Shell Measurements
 
 | Element | Measurement |
@@ -320,6 +335,19 @@ Motion, if used, must communicate change in state:
 - Completion or failure of an operation.
 
 Avoid decorative motion. Long operations must show progress and allow users to keep context.
+
+| Motion type | Duration | Acceptance rule |
+|---|---:|---|
+| Disclosure, hover, or state transition | 120-200 ms | Must communicate a state change without moving focus or content unexpectedly. |
+| Reduced-motion preference | 0 ms for nonessential motion | Preserve the final state, progress, and status feedback without animation. |
+| Long operation | No looping decorative animation | Show operation name and progress or a working state within 200 ms; never hide the current context. |
+
+### Visual Acceptance Measurements
+
+- Essential text, commands, current period, totals, validation summaries, and primary actions must remain visible without clipping at supported window sizes and at Windows text/display scaling through 200%.
+- Long labels and messages wrap or expand vertically; they must not be truncated when they contain validation, legal, financial, or recovery information. Truncation is allowed only for secondary text with a full accessible name and tooltip.
+- Light and dark themes use the same semantic roles, and every newly introduced foreground/background pair is contrast-verified before approval.
+- Resize testing covers 1280x720, 1366x768, and 1920x1080 logical layouts, including sidebar collapse and preservation of focus, selected record, and dominant action.
 
 ## Enterprise Design Constraints
 

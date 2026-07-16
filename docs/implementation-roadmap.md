@@ -97,6 +97,23 @@ This roadmap is a specification artifact. It does not generate application code.
 - Security and operations requirements are testable.
 - Audit coverage includes all sensitive operations.
 
+## Future UI Direction Correction Sequence
+
+This future sequence corrects the visual direction without changing Sprint 1 or prior sprint descriptions. It remains documentation-first and does not authorize business-feature implementation.
+
+| Order | Future work | Acceptance boundary |
+|---|---|---|
+| A | Documentation and acceptance criteria | Approved UX acceptance checklist. |
+| B | Reusable visual components | UI Foundation component inventory and review checklist. |
+| C | Development-only UI Catalog or Component Showcase | Verification record proving normal authentication is preserved, no authentication bypass exists, and the catalog is excluded from Release builds. |
+| D | Login migration | Login visual acceptance checklist. |
+| E | Main Shell migration with sidebar and workspace | Shell visual acceptance checklist. |
+| F | Explicit visual approval | Signed visual approval record referencing the acceptance checklist. |
+| G | Payroll migration into the workspace | Payroll workspace visual acceptance checklist. |
+| H | Automated verification and manual checklist | Automated results plus completed manual verification checklist. |
+| I | Separate custom chrome prototype | Prototype technical-evidence record. |
+| J | Technical and accessibility validation before adoption | Completed Windows parity checklist and accessibility approval record. |
+
 ## Dependency Order
 
 | Order | Dependency | Reason |

@@ -22,6 +22,7 @@ It applies to every implementation contributor, including human developers and A
 | Fail Fast | Invalid input, invalid state, invalid configuration, and unauthorized actions must fail before mutation. | Validate payroll period state, open accounting period, balanced journal entries, active tax versions, and role access before saving. |
 | Least Privilege | Users and components receive only the permissions and dependencies they need. | RBAC is role-only for Sprint 1, sensitive actions require explicit authorization, and UI must not decide permissions independently. |
 | Testability First | Business rules must be designed so they can be tested before UI complexity is added. | Payroll, tax, ledger, lifecycle, SUNAT book, and report rules need focused unit, integration, contract, or golden master tests. |
+| Reusable Visual Foundation | Visual consistency belongs to shared components and layout primitives, while custom window chrome remains a separate shell concern. | WinForms screens consume reusable themed controls and layouts; Forms do not duplicate styling or title-bar behavior. |
 
 Mandatory examples:
 

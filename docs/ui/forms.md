@@ -19,6 +19,12 @@ Each form should include:
 - Save and cancel actions.
 - Dirty-state warning when leaving with unsaved changes.
 
+## Shared Form Visual Foundation
+
+Forms use the shared UI Foundation and semantic tokens from `design-system.md`; they do not define independent colors, radii, heights, focus treatment, or window chrome. Standard text-entry/select targets are 36 px high, compact targets are 32 px only in high-volume contexts, and destructive or dominant commands are at least 36 px high. Labels, validation, recovery messages, and legal or financial values wrap or expand rather than clipping; exceptions require an explicit rationale and an accessible full value.
+
+At 1280x720, 1366x768, and 1920x1080 layouts and through 200% Windows scaling, resizing must preserve the visible primary action, validation summary, current period where applicable, and financial totals. Secondary actions may group, but required fields and keyboard access remain available.
+
 ## Field Grouping
 
 Group fields by user mental model, not database structure.
