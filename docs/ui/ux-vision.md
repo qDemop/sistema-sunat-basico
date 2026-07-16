@@ -2,7 +2,7 @@
 
 ## Purpose
 
-ERP.WinForms must feel like a focused Windows desktop productivity tool: calm, fast, legible, and trustworthy under daily operational pressure. The experience adapts the Apple Human Interface Guidelines philosophy to an enterprise ERP context: clarity, deference to content, consistency, progressive disclosure, meaningful depth, and simplicity that preserves operational power. It does not imitate macOS controls, fonts, icons, or platform conventions.
+ERP.WinForms must feel like a focused Windows desktop productivity tool: calm, fast, legible, and trustworthy under daily operational pressure. The experience adapts the Apple Human Interface Guidelines philosophy to an enterprise ERP context: clarity, deference to content, consistency, progressive disclosure, meaningful depth, and simplicity that preserves operational power. The canonical visual direction, platform adaptation boundaries, and current implementation baseline are defined in "Canonical Visual Direction and Current Baseline" below.
 
 This document defines the UX foundation for the user-visible modules `Iniciar sesion`, `Inicio`, `Administracion`, `Empleados`, `Planillas`, `Contabilidad`, `SUNAT`, and `Reportes` before business implementation begins. It is a specification artifact only. It does not define application code, control classes, or implementation mechanics.
 
@@ -16,6 +16,20 @@ The following artifacts are normative and resolve any ambiguity in this document
 - `keyboard-shortcuts.md`: shortcuts and high-productivity workflows.
 
 All visible interface labels, statuses, messages, commands, exports, and confirmations use Peruvian Spanish. Domain identifiers remain `DNI`, `RUC`, `IGV`, `AFP`, `ONP`, `CTS`, and `SUNAT`.
+
+## Canonical Visual Direction and Current Baseline
+
+The approved product direction is a Windows desktop ERP whose visual language is inspired by macOS and Apple HIG principles, not an imitation of macOS. It combines calm composition, clear typography, subtle surfaces and depth, discreetly rounded fields, buttons, cards, panels, and dialogs, a persistent sidebar, a consistent shell and workspace, light and dark themes, complete states, brief functional motion, and reusable components.
+
+Windows behavior remains authoritative: keyboard operation, accessibility APIs and screen readers, high contrast, DPI scaling, window management, and familiar input conventions must not be traded for appearance. The product must not copy macOS pixel-for-pixel, reproduce red/yellow/green window buttons, replace useful Windows conventions without a demonstrated benefit, or style each Form independently.
+
+| Current interface | Delivery status | Direction status |
+|---|---|---|
+| `LoginForm` | Functionally implemented | Visually provisional; not yet conformant with this target direction. |
+| `MainForm` | Functionally implemented | Visually provisional; not yet conformant with this target direction. |
+| `PayrollWorkspaceForm` | Functionally implemented | Visually provisional; not yet conformant with this target direction. |
+
+Conformance requires the reusable foundation and visual acceptance criteria in `design-system.md`, `layout-specifications.md`, `accessibility.md`, `states.md`, and `forms.md`; no individual Form may define its own visual language.
 
 ## Product Experience Statement
 

@@ -123,6 +123,10 @@ Reduce avoidable mental effort:
 - Async results announce `En proceso`, `Completado`, `Completado parcialmente`, `No completado`, or `Resultado desconocido` without forcing focus away from the user's current context.
 - Reduced-motion preferences suppress nonessential transitions while preserving state feedback.
 
+## Custom Chrome Accessibility Gate
+
+Custom chrome is not active in this phase. Before a future adoption, the complete parity checklist in `layout-specifications.md` must pass with keyboard-only, screen-reader, high-contrast, light-theme, dark-theme, per-monitor DPI, and multiple-monitor verification. `Alt+Space`, the system menu, title-bar double click, drag, resize, minimize, maximize/restore, close, and Windows Snap/Snap Layouts when technically possible are acceptance requirements, not optional polish.
+
 ## Charts and Non-Text Content
 
 - Every chart has a title, period, units, text summary, and equivalent tabular data.
@@ -156,7 +160,9 @@ Reduce avoidable mental effort:
 
 ## Required Verification Matrix
 
-Each release candidate must verify at least one screen of every archetype plus all high-risk screens.
+Each release candidate must verify at least one screen of every archetype included in its scope, plus all high-risk screens included in that scope.
+
+Items not yet implemented or not included in the release scope do not block that release.
 
 | Archetype / Screen | Keyboard Only | Screen Reader | High Contrast | 200% Scaling | Async Announcement |
 |---|---:|---:|---:|---:|---:|
@@ -168,5 +174,6 @@ Each release candidate must verify at least one screen of every archetype plus a
 | Journal entry ACC-08 | Required | Required | Required | Required | Balance/post result. |
 | SUNAT process SUN-02 | Required | Required | Required | Required | Validation/generation/export state. |
 | Financial report REP-02 | Required | Required | Required | Required | Refresh/export state. |
+| Custom chrome prototype | Required | Required | Required | Required on each tested monitor | Window and Snap state where technically possible. |
 
-Acceptance requires no keyboard trap, visible focus at every step, correct accessible names, announced headers/status/totals, no clipped dominant action or error, and no information conveyed only through color.
+Acceptance requires no keyboard trap, visible focus at every step, correct accessible names, announced headers/status/totals, no clipped dominant action or error, no information conveyed only through color, and reduced-motion behavior that preserves functional feedback.

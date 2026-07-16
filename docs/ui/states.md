@@ -272,6 +272,10 @@ Cancellation is offered only when the operation can stop safely. The message dis
 
 Use placeholders only when they reduce perceived waiting and preserve layout. Do not show fake financial values. For finance and compliance screens, placeholders must clearly be loading surfaces, not provisional results.
 
+## Functional Motion States
+
+This document defines which state changes may use motion. The canonical duration, reduced-motion, focus-retention, and loading-feedback requirements are defined only in `design-system.md`.
+
 ## Success States
 
 Success feedback should be visible but restrained.
